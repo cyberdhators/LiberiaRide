@@ -1,0 +1,74 @@
+@import "tailwindcss";
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* LiberiaRide design tokens. Navy + signal red echo the Liberian flag; used sparingly. */
+@theme {
+  --color-brand-50: #eef3fb;
+  --color-brand-100: #d6e2f5;
+  --color-brand-200: #adc4ea;
+  --color-brand-500: #1d4f9c;
+  --color-brand-600: #143f85;
+  --color-brand-700: #0f316a;
+  --color-brand-900: #0a1f44;
+  --color-signal-500: #c8102e;
+  --color-signal-600: #a50d26;
+  --color-ok-500: #138a52;
+  --color-warn-500: #c77700;
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+
+  --radius-card: 1rem;
+  --shadow-sheet: 0 -8px 30px -12px rgb(10 31 68 / 0.25);
+}
+
+:root {
+  --surface: #ffffff;
+  --surface-muted: #f4f6fa;
+  --ink: #0f172a;
+  --ink-muted: #5b6474;
+  --line: #e2e7ef;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --surface: #0f1522;
+    --surface-muted: #161e2e;
+    --ink: #e8edf6;
+    --ink-muted: #97a2b6;
+    --line: #253049;
+    color-scheme: dark;
+  }
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--surface-muted);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep focus visible for keyboard users everywhere. */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+.surface { background: var(--surface); }
+.surface-muted { background: var(--surface-muted); }
+.text-muted { color: var(--ink-muted); }
+.border-line { border-color: var(--line); }
+
+/* Safe-area padding for phones with home indicators. */
+.pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+
+.maplibregl-ctrl-attrib { font-size: 10px; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
