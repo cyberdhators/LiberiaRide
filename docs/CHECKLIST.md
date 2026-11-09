@@ -7,10 +7,10 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 22 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 23 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
-| CI (migration parse, unit tests, typecheck, build) | ✅ | `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
+| CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
 | Vercel deployment | 🟡 | waiting for the go-ahead; see [DEPLOYMENT.md](DEPLOYMENT.md) |
 | Production Supabase project | ⬜ | separate project, same region |
 
@@ -43,7 +43,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Admin: KPIs, live map, drivers, bookings + manual assign, passengers, safety, finance, fares/promotions/config/landmarks, audit | ✅ |
 | Sign-in by email link or code (`/auth/callback`) | ✅ |
 | Sign-in by SMS | 🟡 needs an SMS provider in Supabase Auth |
-| Role management page (make staff without SQL) | ⬜ |
+| Staff & roles page (`/admin/staff`): grant/revoke support agent, fleet operator, admin (super admin only) | ✅ |
 | Save Home / Work, in-app notifications list | ⬜ |
 | Fleet operator pages | ⬜ |
 | Categories / service-area editor, avatar upload, vehicle switching, document-expiry reminders, refunds, geofence events | ⬜ |
@@ -64,6 +64,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Unit (Vitest): 65 tests | ✅ |
 | Real-DB integration (`RUN_DB_TESTS=1`) | ✅ |
 | SQL lifecycle/security test (`supabase/tests/lifecycle_test.sql`) | ✅ `FAILURES: []` |
+| SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
 | Browser E2E (Playwright): home, auth redirect, book → cancel | ✅ 3/3 |
 
 ## Quality, later

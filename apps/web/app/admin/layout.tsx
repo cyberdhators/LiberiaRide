@@ -4,7 +4,7 @@ import { requireStaff } from "@/lib/auth";
 const NAV = [
   ["/admin", "Overview"], ["/admin/map", "Live map"], ["/admin/bookings", "Bookings"], ["/admin/drivers", "Drivers"],
   ["/admin/passengers", "Passengers"], ["/admin/safety", "Safety"], ["/admin/finance", "Finance"],
-  ["/admin/fares", "Fares & config"], ["/admin/audit", "Audit log"],
+  ["/admin/fares", "Fares & config"], ["/admin/staff", "Staff & roles"], ["/admin/audit", "Audit log"],
 ] as const;
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
