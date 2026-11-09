@@ -1,0 +1,28 @@
+{
+  "name": "liberia-ride",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Web-first ride-hailing platform for Liberia (Monrovia).",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "engines": {
+    "node": ">=20.11"
+  },
+  "scripts": {
+    "dev": "npm run dev -w @liberia-ride/web",
+    "build": "npm run build -w @liberia-ride/web",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:lint": "node scripts/parse-migrations.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "libpg-query": "^18.2.2",
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
+  }
+}

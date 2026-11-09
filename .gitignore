@@ -1,0 +1,36 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+*.tsbuildinfo
+.turbo/
+.vercel/
+coverage/
+playwright-report/
+test-results/
+
+# env / secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
+
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# reverse-engineering inputs live outside the repo
+*.apk
+*.zip
