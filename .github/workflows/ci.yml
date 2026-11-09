@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      # Build-time placeholders only. Real values live in Vercel project env vars.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_placeholder_for_ci_build
+      NEXT_PUBLIC_SITE_URL: https://example.invalid
+      SUPABASE_SECRET_KEY: sb_secret_placeholder_for_ci_build
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Migrations parse (SQL + PL/pgSQL)
+        run: npm run db:lint
+      - name: Unit tests
+        run: npx vitest run
+      - name: Typecheck
+        run: npm run typecheck
+      - name: Production build
+        run: npm run build
+
+  database:
+    # Real-database integration tests against the DEVELOPMENT project only.
+    # Enabled when the repository has these secrets configured.
+    runs-on: ubuntu-latest
+    needs: verify
+    if: ${{ github.event_name == 'push' && vars.RUN_DB_TESTS == '1' }}
+    timeout-minutes: 15
+    env:
+      RUN_DB_TESTS: "1"
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.DEV_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.DEV_SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SECRET_KEY: ${{ secrets.DEV_SUPABASE_SECRET_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx vitest run apps/web/tests/integration

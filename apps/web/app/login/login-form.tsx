@@ -22,7 +22,7 @@ export function LoginForm() {
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(params.get("error") === "link" ? "That sign-in link is invalid or expired. Request a new one." : null);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
@@ -39,7 +39,10 @@ export function LoginForm() {
       } else {
         const email = identifier.trim().toLowerCase();
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new Error("Enter a valid email address.");
-        const { error } = await supabase.auth.signInWithOtp({ email, options: { shouldCreateUser: true } });
+        const { error } = await supabase.auth.signInWithOtp({
+          email,
+          options: { shouldCreateUser: true, emailRedirectTo: `${window.location.origin}/auth/callback?next=${encodeURIComponent(next)}` },
+        });
         if (error) throw error;
         setSentTo(email);
       }
@@ -79,7 +82,9 @@ export function LoginForm() {
   if (sentTo) {
     return (
       <form onSubmit={verify} className="mt-6 space-y-4">
-        <Alert tone="info">Enter the 6-digit code sent to <strong>{sentTo}</strong>.</Alert>
+        <Alert tone="info">
+          {channel === "phone" ? <>Enter the code sent to <strong>{sentTo}</strong>.</> : <>Open the link we emailed to <strong>{sentTo}</strong>, or enter the code from that email.</>}
+        </Alert>
         <Field label="Code" htmlFor="code">
           <Input id="code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6,10}" maxLength={10}
             value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))} autoFocus required />
