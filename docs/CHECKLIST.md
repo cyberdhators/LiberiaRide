@@ -44,7 +44,8 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Sign-in by email link or code (`/auth/callback`) | ✅ |
 | Sign-in by SMS | 🟡 needs an SMS provider in Supabase Auth |
 | Staff & roles page (`/admin/staff`): grant/revoke support agent, fleet operator, admin (super admin only) | ✅ |
-| Save Home / Work, in-app notifications list | ⬜ |
+| Saved places (Home, Work, named; from GPS, search or a starred recent trip) | ✅ |
+| In-app notifications (`/notifications`, live unread badge via Realtime) | ✅ |
 | Fleet operator pages | ⬜ |
 | Categories / service-area editor, avatar upload, vehicle switching, document-expiry reminders, refunds, geofence events | ⬜ |
 
@@ -65,7 +66,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Real-DB integration (`RUN_DB_TESTS=1`) | ✅ |
 | SQL lifecycle/security test (`supabase/tests/lifecycle_test.sql`) | ✅ `FAILURES: []` |
 | SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
-| Browser E2E (Playwright): home, auth redirect, book → cancel | ✅ 3/3 |
+| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification | ✅ 4/4 |
 
 ## Quality, later
 

@@ -1,7 +1,10 @@
 "use client";
 import { useState } from "react";
-import { Crosshair, History, Link2, MapPin, Search, Star, X } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Briefcase, Crosshair, History, Home, Link2, MapPin, Search, Star, X } from "lucide-react";
 import type { ResolvedLocation } from "@liberia-ride/geospatial";
+import { createClient } from "@/lib/supabase/client";
+import { userMessage } from "@/lib/errors";
 import { Alert, Button, Input, Spinner } from "@/components/ui";
 import type { Place, SavedPlace } from "./booking-flow";
 
@@ -10,7 +13,7 @@ interface Props {
   savedPlaces: SavedPlace[];
   onPick: (p: Place) => void;
   onUseGps?: () => void;
-  onChooseOnMap: () => void;
+  onChooseOnMap?: () => void;
   onClose: () => void;
 }
 
@@ -92,9 +95,11 @@ export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseO
           {onUseGps && (
             <Button variant="secondary" onClick={onUseGps}><Crosshair className="h-4 w-4" /> My location</Button>
           )}
-          <Button variant="secondary" onClick={onChooseOnMap} className={onUseGps ? "" : "col-span-2"}>
-            <MapPin className="h-4 w-4" /> Choose on map
-          </Button>
+          {onChooseOnMap && (
+            <Button variant="secondary" onClick={onChooseOnMap} className={onUseGps ? "" : "col-span-2"}>
+              <MapPin className="h-4 w-4" /> Choose on map
+            </Button>
+          )}
         </div>
 
         {error && <Alert tone="warn" className="mt-3">{error}</Alert>}
@@ -114,7 +119,7 @@ export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseO
         {localMatches.length > 0 && (
           <Section title="Your places">
             {localMatches.map((s) => (
-              <Row key={s.id} icon={<Star className="h-4 w-4" />} title={s.label} subtitle={s.address_text} onClick={() => pickSaved(s)} />
+              <Row key={s.id} icon={s.kind === "saved" ? savedIcon(s.label) : <History className="h-4 w-4" />} title={s.label} subtitle={s.address_text} onClick={() => pickSaved(s)} />
             ))}
           </Section>
         )}
@@ -122,14 +127,15 @@ export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseO
         {!results && !q && saved.length > 0 && (
           <Section title="Saved places">
             {saved.map((s) => (
-              <Row key={s.id} icon={<Star className="h-4 w-4" />} title={s.label} subtitle={s.address_text} onClick={() => pickSaved(s)} />
+              <Row key={s.id} icon={savedIcon(s.label)} title={s.label} subtitle={s.address_text} onClick={() => pickSaved(s)} />
             ))}
           </Section>
         )}
         {!results && !q && recent.length > 0 && (
           <Section title="Recent">
             {recent.map((s) => (
-              <Row key={s.id} icon={<History className="h-4 w-4" />} title={s.address_text} onClick={() => pickSaved(s)} />
+              <Row key={s.id} icon={<History className="h-4 w-4" />} title={s.address_text} onClick={() => pickSaved(s)}
+                action={<SaveRecent place={s} />} />
             ))}
           </Section>
         )}
@@ -147,16 +153,70 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Row({ icon, title, subtitle, onClick }: { icon: React.ReactNode; title: string; subtitle?: string; onClick: () => void }) {
+function Row({ icon, title, subtitle, onClick, action }: {
+  icon: React.ReactNode; title: string; subtitle?: string; onClick: () => void; action?: React.ReactNode;
+}) {
   return (
-    <li>
-      <button onClick={onClick} className="flex w-full items-start gap-3 rounded-lg px-1 py-3 text-left hover:bg-[var(--surface-muted)]">
+    <li className="flex items-start gap-1">
+      <button onClick={onClick} className="flex min-w-0 flex-1 items-start gap-3 rounded-lg px-1 py-3 text-left hover:bg-[var(--surface-muted)]">
         <span className="text-muted mt-0.5">{icon}</span>
         <span className="min-w-0">
           <span className="block truncate font-medium">{title}</span>
           {subtitle && <span className="text-muted block truncate text-xs">{subtitle}</span>}
         </span>
       </button>
+      {action}
     </li>
+  );
+}
+
+export function savedIcon(label: string) {
+  const l = label.trim().toLowerCase();
+  if (l === "home") return <Home className="h-4 w-4" />;
+  if (l === "work") return <Briefcase className="h-4 w-4" />;
+  return <Star className="h-4 w-4" />;
+}
+
+/** Star on a recent place → save it as Home, Work or a named place (replaces an existing place with that name). */
+function SaveRecent({ place }: { place: SavedPlace }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [done, setDone] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save(label: string | null) {
+    const name = label ?? window.prompt("Name this place", "")?.trim();
+    if (!name) return;
+    setBusy(true);
+    setError(null);
+    const { error } = await createClient().rpc("save_location", {
+      p_kind: "saved", p_label: name, p_address: place.address_text, p_lat: place.lat, p_lng: place.lng, p_qls_code: place.qls_code ?? undefined,
+    });
+    setBusy(false);
+    if (error) return setError(userMessage(error));
+    setDone(name);
+    setOpen(false);
+    router.refresh();
+  }
+
+  if (done) return <span className="text-muted shrink-0 px-2 py-3 text-xs">Saved as {done}</span>;
+  return (
+    <div className="flex shrink-0 flex-col items-end py-2">
+      {open ? (
+        <div className="flex gap-1" role="group" aria-label="Save place as">
+          {["Home", "Work"].map((l) => (
+            <Button key={l} size="sm" variant="secondary" disabled={busy} onClick={() => save(l)}>{l}</Button>
+          ))}
+          <Button size="sm" variant="secondary" disabled={busy} onClick={() => save(null)}>Other…</Button>
+        </div>
+      ) : (
+        <button onClick={() => setOpen(true)} className="text-muted grid h-10 w-10 place-items-center rounded-lg hover:bg-[var(--surface-muted)]"
+          aria-label={`Save ${place.address_text}`}>
+          <Star className="h-4 w-4" />
+        </button>
+      )}
+      {error && <span className="mt-1 max-w-40 text-xs text-signal-600">{error}</span>}
+    </div>
   );
 }

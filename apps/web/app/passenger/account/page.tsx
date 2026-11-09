@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { AccountForms } from "@/components/passenger/account-forms";
+import type { SavedPlace } from "@/components/passenger/booking-flow";
 
 export const metadata = { title: "Account" };
 
@@ -28,7 +29,7 @@ export default async function AccountPage() {
           trips: passenger?.completed_trips ?? 0,
         }}
         contacts={contacts ?? []}
-        places={((places ?? []) as { id: string; kind: string; label: string; address_text: string }[]).filter((p) => p.kind === "saved")}
+        places={(places ?? []) as SavedPlace[]}
         isDriver={user.roles.includes("driver")}
       />
       <form action="/auth/signout" method="post">

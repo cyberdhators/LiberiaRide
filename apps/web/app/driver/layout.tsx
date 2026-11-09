@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { CircleDollarSign, LifeBuoy, Navigation } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
+import { NotificationsNavItem } from "@/components/notifications";
 
 export default async function DriverLayout({ children }: { children: React.ReactNode }) {
-  await requireUser("/driver");
+  const user = await requireUser("/driver");
+  const supabase = await createClient();
+  const { count: unread } = await supabase.from("notifications").select("id", { count: "exact", head: true }).is("read_at", null);
   return (
     <div className="flex min-h-dvh flex-col">
       <div className="flex-1">{children}</div>
       <nav aria-label="Driver" className="surface sticky bottom-0 z-30 border-t border-line pb-safe">
-        <ul className="mx-auto grid max-w-lg grid-cols-3 text-xs font-medium">
+        <ul className="mx-auto grid max-w-lg grid-cols-4 text-xs font-medium">
           {[
             { href: "/driver", label: "Drive", Icon: Navigation },
             { href: "/driver/earnings", label: "Earnings", Icon: CircleDollarSign },
@@ -20,6 +24,10 @@ export default async function DriverLayout({ children }: { children: React.React
               </Link>
             </li>
           ))}
+          <li>
+            <NotificationsNavItem userId={user.id} initialUnread={unread ?? 0}
+              className="text-muted flex flex-col items-center gap-0.5 py-2.5 hover:text-brand-600" />
+          </li>
         </ul>
       </nav>
     </div>

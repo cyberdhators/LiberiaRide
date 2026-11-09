@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { userMessage } from "@/lib/errors";
 import { cn, money } from "@/lib/utils";
 import { getCurrentFix } from "@/hooks/use-geolocation";
+import { reverseLabel } from "@/lib/geo-client";
 import { Map, type MapMarker } from "@/components/map";
 import { Alert, Badge, Button, Input, Spinner } from "@/components/ui";
 import { LocationSearch } from "./location-search";
@@ -58,15 +59,6 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   // One key per booking intent: retries of the same tap reuse it, so no duplicates.
   const idemKey = useRef<string | null>(null);
 
-  const reverseLabel = useCallback(async (lat: number, lng: number): Promise<Place> => {
-    try {
-      const res = await fetch("/api/geo/reverse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ lat, lng }) });
-      const body = await res.json();
-      if (res.ok) return { lat, lng, address: body.result.label, qlsRef: body.result.qlsRef ?? null, source: body.result.source };
-    } catch { /* offline: fall through */ }
-    return { lat, lng, address: `Pinned location (${lat.toFixed(5)}, ${lng.toFixed(5)})`, qlsRef: null, source: "pin" };
-  }, []);
-
   const locateMe = useCallback(async () => {
     setLocating(true);
     setGpsError(null);
@@ -79,7 +71,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
     } finally {
       setLocating(false);
     }
-  }, [reverseLabel]);
+  }, []);
 
   // Try GPS once on arrival for a map-first start.
   useEffect(() => { void locateMe(); }, [locateMe]);

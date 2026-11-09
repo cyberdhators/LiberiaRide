@@ -2,21 +2,24 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Trash2 } from "lucide-react";
+import { Briefcase, Home, Plus, Trash2 } from "lucide-react";
 import { formatPhone, normalizePhone } from "@liberia-ride/shared";
 import { createClient } from "@/lib/supabase/client";
 import { userMessage } from "@/lib/errors";
+import { getCurrentFix } from "@/hooks/use-geolocation";
+import { reverseLabel } from "@/lib/geo-client";
 import { Alert, Button, Card, CardTitle, Field, Input, Select } from "@/components/ui";
+import type { Place, SavedPlace } from "./booking-flow";
+import { LocationSearch, savedIcon } from "./location-search";
 
 interface Profile {
   full_name: string; phone: string | null; email: string | null; preferred_currency: "USD" | "LRD";
   default_payment_method: string; rating: number | null; trips: number;
 }
 interface Contact { id: string; name: string; phone: string; relationship: string | null }
-interface PlaceRow { id: string; label: string; address_text: string }
 
 export function AccountForms({ profile, contacts, places, isDriver }: {
-  profile: Profile; contacts: Contact[]; places: PlaceRow[]; isDriver: boolean;
+  profile: Profile; contacts: Contact[]; places: SavedPlace[]; isDriver: boolean;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -30,6 +33,12 @@ export function AccountForms({ profile, contacts, places, isDriver }: {
   const [cPhone, setCPhone] = useState("");
   const [cRel, setCRel] = useState("");
   const [cErr, setCErr] = useState<string | null>(null);
+
+  // Label being set via the location picker ("Home", "Work" or a custom name).
+  const [placeLabel, setPlaceLabel] = useState<string | null>(null);
+  const [placeErr, setPlaceErr] = useState<string | null>(null);
+  const saved = places.filter((p) => p.kind === "saved");
+  const has = (label: string) => saved.some((p) => p.label.toLowerCase() === label.toLowerCase());
 
   async function saveProfile(e: React.FormEvent) {
     e.preventDefault();
@@ -66,6 +75,30 @@ export function AccountForms({ profile, contacts, places, isDriver }: {
   async function removePlace(id: string) {
     await supabase.from("saved_locations").delete().eq("id", id);
     router.refresh();
+  }
+  function startPlace(label: string | null) {
+    const name = label ?? window.prompt("Name this place (e.g. School, Mum's house)", "")?.trim();
+    if (!name) return;
+    setPlaceErr(null);
+    setPlaceLabel(name);
+  }
+  async function savePlace(p: Place) {
+    const label = placeLabel!;
+    setPlaceLabel(null);
+    const { error } = await supabase.rpc("save_location", {
+      p_kind: "saved", p_label: label, p_address: p.address, p_lat: p.lat, p_lng: p.lng, p_qls_code: p.qlsRef ?? undefined,
+    });
+    if (error) return setPlaceErr(userMessage(error));
+    router.refresh();
+  }
+  async function placeFromGps() {
+    try {
+      const fix = await getCurrentFix();
+      await savePlace(await reverseLabel(fix.lat, fix.lng));
+    } catch (e) {
+      setPlaceLabel(null);
+      setPlaceErr((e as Error).message);
+    }
   }
 
   return (
@@ -116,15 +149,26 @@ export function AccountForms({ profile, contacts, places, isDriver }: {
 
       <Card>
         <CardTitle>Saved places</CardTitle>
-        {places.length === 0 ? <p className="text-muted mt-1 text-sm">Save Home or Work from a trip to book faster.</p> : (
-          <ul className="mt-2 divide-y divide-[var(--line)]">
-            {places.map((p) => (
-              <li key={p.id} className="flex items-center justify-between py-2 text-sm">
-                <span><strong>{p.label}</strong> <span className="text-muted">· {p.address_text}</span></span>
-                <button onClick={() => removePlace(p.id)} aria-label={`Remove ${p.label}`} className="text-muted p-2"><Trash2 className="h-4 w-4" /></button>
-              </li>
-            ))}
-          </ul>
+        {saved.length === 0 && <p className="text-muted mt-1 text-sm">Save Home and Work to book in one tap. You can also star a recent place while booking.</p>}
+        <ul className="mt-2 divide-y divide-[var(--line)]">
+          {saved.map((p) => (
+            <li key={p.id} className="flex items-center gap-2 py-2 text-sm">
+              <span className="text-muted">{savedIcon(p.label)}</span>
+              <span className="min-w-0 flex-1"><strong>{p.label}</strong> <span className="text-muted">· {p.address_text}</span></span>
+              <button onClick={() => startPlace(p.label)} className="text-muted px-2 text-xs underline">Change</button>
+              <button onClick={() => removePlace(p.id)} aria-label={`Remove ${p.label}`} className="text-muted p-2"><Trash2 className="h-4 w-4" /></button>
+            </li>
+          ))}
+        </ul>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {!has("Home") && <Button size="sm" variant="secondary" onClick={() => startPlace("Home")}><Home className="h-4 w-4" /> Add Home</Button>}
+          {!has("Work") && <Button size="sm" variant="secondary" onClick={() => startPlace("Work")}><Briefcase className="h-4 w-4" /> Add Work</Button>}
+          <Button size="sm" variant="secondary" onClick={() => startPlace(null)}><Plus className="h-4 w-4" /> Add place</Button>
+        </div>
+        {placeErr && <Alert tone="danger" className="mt-2">{placeErr}</Alert>}
+        {placeLabel && (
+          <LocationSearch title={`Set ${placeLabel}`} savedPlaces={places.filter((p) => p.kind === "recent")}
+            onUseGps={placeFromGps} onPick={savePlace} onClose={() => setPlaceLabel(null)} />
         )}
       </Card>
 
