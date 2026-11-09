@@ -13,6 +13,7 @@ import { cn, formatDateTime, money, timeAgo } from "@/lib/utils";
 import { Map, type MapMarker } from "@/components/map";
 import { Alert, Badge, Button, Card, Textarea } from "@/components/ui";
 import { ChatPanel } from "@/components/chat-panel";
+import { PayNow } from "./pay-now";
 
 interface Pt { lat: number; lng: number; address?: string }
 export interface BookingView {
@@ -217,7 +218,12 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
         )}
 
         {status === "COMPLETED" && (
-          <Receipt view={view} alreadyRated={alreadyRated} onDone={() => router.push("/passenger")} />
+          <>
+            {view.payment_method !== "cash" && (
+              <div className="mt-3"><PayNow bookingId={view.id} method={view.payment_method} status={view.payment_status} defaultMsisdn={null} /></div>
+            )}
+            <Receipt view={view} alreadyRated={alreadyRated} onDone={() => router.push("/passenger")} />
+          </>
         )}
 
         {(status === "CANCELLED" || status === "EXPIRED" || status === "FAILED") && (
