@@ -1,6 +1,7 @@
 // Tolerant parsing of QLS responses into our types.
-// Verified live (9 Nov 2026): address rows carry top-level `latitude`/`longitude`.
-// Other endpoints' point shapes are UNVERIFIED, so several common shapes are accepted;
+// Verified live (9 Nov 2026): address rows carry top-level `latitude`/`longitude`; directions
+// return `overviewPolyline` and steps with `start`/`end`. Ping/place point shapes are still
+// UNVERIFIED, so several common shapes are accepted;
 // anything without a valid coordinate is rejected rather than guessed.
 import type { AddressDetails, GeoPoint, ResolvedLocation, Route, RouteStep } from "../types";
 import { QlsError } from "./errors";
@@ -143,7 +144,8 @@ export function parseDirections(data: unknown): Route | null {
     distanceText: str(s.distanceText),
     durationText: str(s.durationText),
     maneuver: str(s.maneuver),
-    point: extractPoint(s),
+    // Verified live: steps carry `start` / `end` objects.
+    point: extractPoint(s.start) ?? extractPoint(s),
   }));
 
   return {

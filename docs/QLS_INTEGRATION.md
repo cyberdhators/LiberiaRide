@@ -58,7 +58,7 @@ Account activation (owner action, one time): sign up → QLS admin grants API ac
 | Digital address (QLS address) display | ✅ via address rows (`sourceId`, `formattedAddress`, `geobloc`, `validationStatus`) — verified live | addresses | `QLSAddressProvider` | Implemented |
 | Road routing, distance, duration | ✅ | `POST /api/v1/navigation/directions` | `QLSRoutingProvider.directions` | Implemented |
 | Turn-by-turn steps | ✅ `steps[]` | directions | `QLSRoutingProvider` | Implemented |
-| Route geometry for drawing | ✅ "encoded path" (field name **UNVERIFIED**) | directions | `QLSRoutingProvider` | Implemented, parser tolerant |
+| Route geometry for drawing | ✅ `overviewPolyline` (verified live) | directions | `QLSRoutingProvider` | Implemented |
 | Straight-line driver ↔ stop distance | ✅ | `POST /api/v1/search/driver-distance` | `QLSLocationProvider.driverDistance` | Implemented (on-demand only, §2) |
 | **Reverse geocoding** (coords → address) | ❌ not in package | — | `ReverseGeocodingAdapter` | **GAP** — see §5 |
 | **Map rendering / tiles** | ❌ not in package | — | `MapRenderAdapter` | **GAP** — see §5 |
@@ -122,7 +122,12 @@ Errors: `400 invalid_directions_request` (free). Non-OK / empty steps → credit
 * Place search `"Capitol Building"` (the package's own example) → **404 `place_not_found`** (credit spent).
   Place coverage in Liberia is evidently partial; the UI therefore offers address search and map-pin
   as first-class alternatives, and the `address_aliases` landmark table fills local gaps.
-* Ping, directions, driver-distance: shapes still **UNVERIFIED** (no live call made yet — each costs a credit).
+* Directions (Executive Mansion → ELWA, driving) → HTTP 200, **verified shape:** `status, mode, originLabel,
+  destinationLabel, distanceText, durationText, distanceMeters, durationSeconds, overviewPolyline` (Google-encoded,
+  precision 5), `bounds{northeast,southwest}{lat,lng}`, `steps[]{instruction, distanceText, durationText, maneuver,
+  start{lat,lng}, end{lat,lng}}`, `googleMapsUrl`, `crossBorder`. Example: 14.3 km / 33 min for a 11.8 km straight line
+  → road factor ≈ 1.21 (our fallback `fare.road_factor` is 1.35 — tune after more samples).
+* Ping, driver-distance: shapes still **UNVERIFIED** (no live call made yet — each costs a credit).
   `qls/parse.ts` accepts top-level `latitude/longitude` or `lat/lng`, or nested
   `location|point|coordinates|position` objects, or GeoJSON `[lng, lat]`, and rejects results with no valid coordinate.
 

@@ -162,6 +162,16 @@ describe("directions", () => {
     expect(r.steps[0]!.instruction).toContain("Head north");
   });
 
+  it("reads the live response shape (overviewPolyline, step start/end)", () => {
+    const live = { ...OK, overviewPolyline: "_p~iF~ps|U_ulLnnqC", bounds: { northeast: { lat: 6.3, lng: -10.69 }, southwest: { lat: 6.24, lng: -10.79 } },
+      steps: [{ instruction: "Head southeast toward Camp Johnson Rd", distanceText: "0.2 km", durationText: "1 min", maneuver: null,
+        start: { lat: 6.3002, lng: -10.7983 }, end: { lat: 6.299, lng: -10.797 } }],
+      googleMapsUrl: "https://example.invalid" };
+    const r = parseDirections(live)!;
+    expect(r.polyline).toBe("_p~iF~ps|U_ulLnnqC");
+    expect(r.steps[0]!.point).toEqual({ lat: 6.3002, lng: -10.7983 });
+  });
+
   it("returns null for a non-OK or empty route (credit refunded by QLS)", () => {
     expect(parseDirections({ ...OK, status: "ZERO_RESULTS" })).toBeNull();
     expect(parseDirections({ ...OK, steps: [] })).toBeNull();
