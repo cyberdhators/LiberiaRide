@@ -5,7 +5,10 @@ import { normalizePhone } from "@liberia-ride/shared";
 import { createClient } from "@/lib/supabase/client";
 import { Alert, Button, Field, Input } from "@/components/ui";
 
-type Channel = "phone" | "email";
+type Channel = "phone" | "email" | "password";
+
+// Password sign-in exists only for development test accounts; production uses phone/email codes.
+const PASSWORD_LOGIN = process.env.NEXT_PUBLIC_ENABLE_PASSWORD_LOGIN === "1";
 
 function safeNext(raw: string | null): string {
   // Only allow same-site relative paths (prevents open redirects).
@@ -19,6 +22,7 @@ export function LoginForm() {
   const next = safeNext(params.get("next"));
   const [channel, setChannel] = useState<Channel>("phone");
   const [identifier, setIdentifier] = useState("");
+  const [password, setPassword] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [busy, setBusy] = useState(false);
@@ -30,6 +34,13 @@ export function LoginForm() {
     const supabase = createClient();
     setBusy(true);
     try {
+      if (channel === "password") {
+        const { error } = await supabase.auth.signInWithPassword({ email: identifier.trim().toLowerCase(), password });
+        if (error) throw new Error("Wrong email or password.");
+        router.replace(next);
+        router.refresh();
+        return;
+      }
       if (channel === "phone") {
         const phone = normalizePhone(identifier);
         if (!phone) throw new Error("Enter a valid phone number, e.g. 077 012 3456.");
@@ -100,12 +111,12 @@ export function LoginForm() {
 
   return (
     <form onSubmit={send} className="mt-6 space-y-4">
-      <div className="surface grid grid-cols-2 rounded-xl border border-line p-1 text-sm font-semibold" role="tablist">
-        {(["phone", "email"] as const).map((c) => (
+      <div className={`surface grid ${PASSWORD_LOGIN ? "grid-cols-3" : "grid-cols-2"} rounded-xl border border-line p-1 text-sm font-semibold`} role="tablist">
+        {(PASSWORD_LOGIN ? (["phone", "email", "password"] as const) : (["phone", "email"] as const)).map((c) => (
           <button key={c} type="button" role="tab" aria-selected={channel === c}
             className={`rounded-lg py-2 ${channel === c ? "bg-brand-600 text-white" : "text-muted"}`}
-            onClick={() => { setChannel(c); setIdentifier(""); setError(null); }}>
-            {c === "phone" ? "Phone" : "Email"}
+            onClick={() => { setChannel(c); setIdentifier(""); setPassword(""); setError(null); }}>
+            {c === "phone" ? "Phone" : c === "email" ? "Email" : "Password"}
           </button>
         ))}
       </div>
@@ -120,8 +131,13 @@ export function LoginForm() {
             value={identifier} onChange={(e) => setIdentifier(e.target.value)} required />
         </Field>
       )}
+      {channel === "password" && (
+        <Field label="Password" htmlFor="pw" hint="Development test accounts only.">
+          <Input id="pw" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </Field>
+      )}
       {error && <Alert tone="danger">{error}</Alert>}
-      <Button type="submit" size="lg" className="w-full" loading={busy}>Send code</Button>
+      <Button type="submit" size="lg" className="w-full" loading={busy}>{channel === "password" ? "Sign in" : "Send code"}</Button>
     </form>
   );
 }
