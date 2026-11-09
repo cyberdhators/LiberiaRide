@@ -25,6 +25,8 @@ interface MapViewProps {
   /** Encoded polyline (QLS directions) or explicit [lng,lat] path. */
   routePolyline?: string | null;
   routePath?: [number, number][] | null;
+  /** Polygons to shade (service areas, zones); the view fits them when there are no markers. */
+  areas?: MapArea[];
   /** Fit the view to markers/route when they change. */
   fit?: boolean;
   center?: { lat: number; lng: number } | null;
@@ -37,6 +39,13 @@ interface MapViewProps {
   padding?: { top: number; bottom: number; left: number; right: number };
   /** Receives helpers once the map is created. */
   onReady?: (api: MapApi) => void;
+}
+
+export interface MapArea {
+  id: string;
+  geojson: { type: "Polygon" | "MultiPolygon"; coordinates: unknown };
+  color?: string;
+  dimmed?: boolean;
 }
 
 export interface MapApi {
@@ -114,7 +123,7 @@ const DEFAULT_PADDING = { top: 60, bottom: 260, left: 40, right: 40 };
 
 export function MapView({
   markers = [], routePolyline, routePath, fit = true, center, onMapClick, onMarkerDragEnd, draggable = [],
-  className, interactive = true, padding = DEFAULT_PADDING, onReady,
+  className, interactive = true, padding = DEFAULT_PADDING, onReady, areas,
 }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MlMap | null>(null);
@@ -148,6 +157,9 @@ export function MapView({
       map.addSource("route", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
       map.addLayer({ id: "route-casing", type: "line", source: "route", paint: { "line-color": "#ffffff", "line-width": 8 } });
       map.addLayer({ id: "route", type: "line", source: "route", paint: { "line-color": "#143f85", "line-width": 5 } });
+      map.addSource("areas", { type: "geojson", data: { type: "FeatureCollection", features: [] } });
+      map.addLayer({ id: "areas-fill", type: "fill", source: "areas", paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", ["get", "dimmed"], 0.04, 0.12] } }, "route-casing");
+      map.addLayer({ id: "areas-line", type: "line", source: "areas", paint: { "line-color": ["get", "color"], "line-width": 2, "line-dasharray": ["case", ["get", "dimmed"], ["literal", [2, 2]], ["literal", [1, 0]]] } }, "route-casing");
       const queued = readyQueue.current.splice(0);
       for (const fn of queued) fn();
     });
@@ -238,6 +250,34 @@ export function MapView({
     else readyQueue.current.push(apply);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routePolyline, routePath, fit, markerKey, padding.bottom]);
+
+  // Sync areas; with no markers, frame them.
+  const areaKey = (areas ?? []).map((a) => `${a.id}:${a.color}:${a.dimmed}`).join("|") + JSON.stringify((areas ?? []).map((a) => a.geojson)).length;
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !areas) return;
+    const apply = () => {
+      (map.getSource("areas") as GeoJSONSource | undefined)?.setData({
+        type: "FeatureCollection",
+        features: areas.map((a) => ({ type: "Feature", properties: { color: a.color ?? "#143f85", dimmed: Boolean(a.dimmed) }, geometry: a.geojson as never })),
+      });
+      if (!fit || markers.length || !areas.length) return;
+      const coords: [number, number][] = [];
+      const walk = (c: unknown): void => {
+        if (Array.isArray(c) && typeof c[0] === "number") coords.push(c as [number, number]);
+        else if (Array.isArray(c)) c.forEach(walk);
+      };
+      areas.forEach((a) => walk(a.geojson.coordinates));
+      if (!coords.length) return;
+      const b = new LngLatBounds(coords[0], coords[0]);
+      for (const p of coords) b.extend(p);
+      const cam = map.cameraForBounds(b, { padding: 40 });
+      if (cam) map.easeTo({ center: cam.center, zoom: cam.zoom, duration: 400 });
+    };
+    if (loadedRef.current) apply();
+    else readyQueue.current.push(apply);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [areaKey, fit]);
 
   useEffect(() => {
     if (center && mapRef.current) mapRef.current.easeTo({ center: [center.lng, center.lat], zoom: 15, duration: 400 });
