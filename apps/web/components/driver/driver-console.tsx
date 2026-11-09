@@ -209,7 +209,8 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
 
   const navTarget = active && (active.status === "IN_PROGRESS" ? active.dropoff : active.pickup);
   const gpsReason: Record<string, string> = {
-    throttled: "Updating…", low_accuracy: "GPS signal is weak — move to an open area.",
+    throttled: "Updating…",
+    low_accuracy: `Location is too imprecise${fix ? ` (±${Math.round(fix.accuracy)} m)` : ""}. Turn on GPS / precise location, or move to an open area. Laptops usually can't do this.`,
     stale_fix: "Your phone sent an old position.", implausible_jump: "Ignored a GPS jump.", not_approved: "Account not approved.",
     network: "Couldn't reach the server.",
   };

@@ -68,6 +68,8 @@ body {
 .pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
 
 .maplibregl-ctrl-attrib { font-size: 10px; }
+/* Phones pinch to zoom; the +/- buttons only collide with overlays (status bars, alerts). */
+@media (max-width: 640px) { .maplibregl-ctrl-top-right .maplibregl-ctrl-group { display: none; } }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }

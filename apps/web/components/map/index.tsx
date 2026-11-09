@@ -12,4 +12,4 @@ export const Map = dynamic(() => import("./map-view").then((m) => m.MapView), {
   ),
 });
 
-export type { MapMarker, MarkerKind } from "./map-view";
+export type { MapApi, MapMarker, MarkerKind } from "./map-view";

@@ -49,7 +49,7 @@ test("passenger books and cancels a ride", async ({ page }) => {
   await expect(page).toHaveURL(/\/passenger$/);
 
   // GPS (mocked to Capitol Hill) fills the pickup automatically.
-  await expect(page.getByRole("button", { name: /Pinned location|Near / }).first()).toBeVisible({ timeout: 20_000 });
+  await expect(page.getByRole("button", { name: /Your current location|near |Near |Road|Street/ }).first()).toBeVisible({ timeout: 20_000 });
 
   // Destination: choose on map (free reverse lookup, no QLS search credit).
   await page.getByRole("button", { name: "Where to?" }).click();
@@ -58,7 +58,9 @@ test("passenger books and cancels a ride", async ({ page }) => {
   await expect(map).toBeVisible();
   const box = (await map.boundingBox())!;
   await page.mouse.click(box.x + box.width * 0.8, box.y + box.height * 0.2);
-  await expect(page.getByRole("button", { name: /Pinned location \(6\./ }).nth(1)).toBeVisible({ timeout: 15_000 });
+  // The destination is named from the map's own labels (or a pinned fallback), never left empty.
+  await expect(page.getByRole("button", { name: "Where to?" })).toHaveCount(0, { timeout: 15_000 });
+  await expect(page.getByRole("button", { name: "See prices" })).toBeEnabled();
 
   await page.getByRole("button", { name: "See prices" }).click();
   const car = page.getByRole("radio", { name: /Car/ });

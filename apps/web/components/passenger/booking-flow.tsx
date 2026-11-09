@@ -1,7 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Banknote, Car, Circle, MapPin, Plus, Smartphone, Square, Users, X } from "lucide-react";
+import { ArrowLeft, Banknote, Car, Circle, LocateFixed, MapPin, Plus, Smartphone, Square, Tag, Users, X } from "lucide-react";
 import { bidWindow, newIdempotencyKey, parseMajor } from "@liberia-ride/shared";
 import { formatDistance, formatDuration } from "@liberia-ride/geospatial";
 import { createClient } from "@/lib/supabase/client";
@@ -9,7 +9,7 @@ import { userMessage } from "@/lib/errors";
 import { cn, money } from "@/lib/utils";
 import { getCurrentFix } from "@/hooks/use-geolocation";
 import { reverseLabel } from "@/lib/geo-client";
-import { Map, type MapMarker } from "@/components/map";
+import { Map, type MapApi, type MapMarker } from "@/components/map";
 import { Alert, Badge, Button, Input, Spinner } from "@/components/ui";
 import { LocationSearch } from "./location-search";
 
@@ -56,22 +56,52 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   const [offer, setOffer] = useState("");
   const [booking, setBooking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showOffer, setShowOffer] = useState(false);
+  const [showCoupon, setShowCoupon] = useState(false);
   // One key per booking intent: retries of the same tap reuse it, so no duplicates.
   const idemKey = useRef<string | null>(null);
+  const mapApi = useRef<MapApi | null>(null);
+
+  // The map keeps markers clear of the bottom sheet, whatever its current height.
+  const sheetRef = useRef<HTMLElement>(null);
+  const [sheetH, setSheetH] = useState(260);
+  useEffect(() => {
+    const el = sheetRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setSheetH(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  const mapPadding = useMemo(() => ({ top: 70, bottom: sheetH + 24, left: 40, right: 40 }), [sheetH]);
+
+  /**
+   * Coordinates -> place. Our landmark aliases first (server); otherwise the street/landmark names the
+   * map is already showing, so passengers and drivers see "Camp Johnson Road, near Temple of Justice"
+   * instead of raw coordinates. Neither costs a QLS credit.
+   */
+  const describe = useCallback(async (lat: number, lng: number, apply: (p: Place) => void, fallback?: string) => {
+    const base = await reverseLabel(lat, lng);
+    if (base.source !== "pin") return apply(base);
+    apply(fallback ? { ...base, address: fallback } : base);
+    const name = await mapApi.current?.labelAt(lat, lng);
+    if (name) apply({ ...base, address: name, source: "map_label" });
+  }, []);
 
   const locateMe = useCallback(async () => {
     setLocating(true);
     setGpsError(null);
     try {
       const fix = await getCurrentFix();
-      setPickup(await reverseLabel(fix.lat, fix.lng));
       setSearching(null);
+      await describe(fix.lat, fix.lng, (p) => setPickup((cur) =>
+        // Ignore a late label if the passenger has already moved the pickup elsewhere.
+        cur && p.source === "map_label" && (cur.lat !== p.lat || cur.lng !== p.lng) ? cur : p), "Your current location");
     } catch (e) {
       setGpsError((e as Error).message);
     } finally {
       setLocating(false);
     }
-  }, []);
+  }, [describe]);
 
   // Try GPS once on arrival for a map-first start.
   useEffect(() => { void locateMe(); }, [locateMe]);
@@ -91,8 +121,8 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
     }
   };
 
-  // Any change to the trip invalidates prices and the booking intent.
-  const tripKey = JSON.stringify([pickup, dropoff, stops, currency, coupon]);
+  // Any change to the route invalidates prices and the booking intent.
+  const tripKey = JSON.stringify([pickup && [pickup.lat, pickup.lng], dropoff && [dropoff.lat, dropoff.lng], stops.map((s) => s && [s.lat, s.lng])]);
   useEffect(() => {
     setEstimates(null);
     setRoutePolyline(null);
@@ -100,6 +130,13 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   }, [tripKey]);
 
   const readyToPrice = pickup && dropoff && stops.every(Boolean);
+
+  // Switching currency on the prices step re-quotes in place.
+  const pricedCurrency = useRef(currency);
+  useEffect(() => {
+    if (estimates && pricedCurrency.current !== currency) void priceTrip();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currency]);
 
   async function priceTrip() {
     if (!pickup || !dropoff) return;
@@ -121,6 +158,8 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body?.error?.message ?? "Could not get prices.");
+      pricedCurrency.current = currency;
+      idemKey.current = null;
       setEstimates(body.estimates);
       setRoutePolyline(body.route?.polyline ?? null);
       setEstimateNotice(body.notice ?? null);
@@ -199,11 +238,14 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
           markers={markers}
           routePolyline={routePolyline}
           draggable={["pickup"]}
-          onMarkerDragEnd={async (_id, p) => setPickup(await reverseLabel(p.lat, p.lng))}
-          onMapClick={async (p) => {
+          padding={mapPadding}
+          onReady={(api) => { mapApi.current = api; }}
+          onMarkerDragEnd={(_id, p) => void describe(p.lat, p.lng, setPickup)}
+          onMapClick={(p) => {
             if (!mapPicking) return;
-            setField(mapPicking, await reverseLabel(p.lat, p.lng));
+            const field = mapPicking;
             setMapPicking(null);
+            void describe(p.lat, p.lng, (place) => setField(field, place));
           }}
         />
       </div>
@@ -217,8 +259,15 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
         </div>
       )}
 
+      {pickup && !mapPicking && (
+        <button onClick={locateMe} aria-label="Use my current location as pickup" style={{ bottom: sheetH + 12 }}
+          className="surface absolute right-3 z-10 grid h-11 w-11 place-items-center rounded-full shadow-lg">
+          {locating ? <Spinner className="h-5 w-5" /> : <LocateFixed className="h-5 w-5 text-brand-600" />}
+        </button>
+      )}
+
       {/* Bottom sheet */}
-      <section className="surface absolute inset-x-0 bottom-0 z-10 max-h-[75%] overflow-y-auto rounded-t-3xl p-4 shadow-[var(--shadow-sheet)]" aria-label="Plan your ride">
+      <section ref={sheetRef} className="surface absolute inset-x-0 bottom-0 z-10 max-h-[62%] overflow-y-auto rounded-t-3xl p-4 pt-3 shadow-[var(--shadow-sheet)]" aria-label="Plan your ride">
         <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-[var(--line)]" aria-hidden />
 
         {!estimates ? (
@@ -255,16 +304,6 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
 
             {gpsError && !pickup && <Alert tone="warn" className="mt-3">{gpsError} You can search or tap “Choose on map”.</Alert>}
 
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <div className="surface-muted grid grid-cols-2 rounded-xl p-1 text-sm font-semibold" role="radiogroup" aria-label="Currency">
-                {(["USD", "LRD"] as const).map((c) => (
-                  <button key={c} role="radio" aria-checked={currency === c} onClick={() => setCurrency(c)}
-                    className={cn("rounded-lg py-2", currency === c ? "surface shadow-sm" : "text-muted")}>{c}</button>
-                ))}
-              </div>
-              <Input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Promo code" aria-label="Promo code" maxLength={32} />
-            </div>
-
             {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
             <Button size="lg" className="mt-4 w-full" disabled={!readyToPrice} loading={estimating} onClick={priceTrip}>
               See prices
@@ -272,11 +311,11 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
           </>
         ) : (
           <>
-            <div className="mb-3 flex items-center gap-2">
-              <button onClick={() => setEstimates(null)} className="grid h-9 w-9 place-items-center rounded-lg hover:bg-[var(--surface-muted)]" aria-label="Back">
+            <div className="mb-2 flex items-center gap-2">
+              <button onClick={() => setEstimates(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-lg hover:bg-[var(--surface-muted)]" aria-label="Back">
                 <ArrowLeft className="h-5 w-5" />
               </button>
-              <div className="min-w-0 text-sm">
+              <div className="min-w-0 flex-1 text-sm">
                 <p className="truncate font-medium">{dropoff?.address}</p>
                 {chosen?.distanceM !== undefined && (
                   <p className="text-muted text-xs">
@@ -285,22 +324,29 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
                   </p>
                 )}
               </div>
+              <div className="surface-muted grid shrink-0 grid-cols-2 rounded-lg p-0.5 text-xs font-semibold" role="radiogroup" aria-label="Currency">
+                {(["USD", "LRD"] as const).map((c) => (
+                  <button key={c} role="radio" aria-checked={currency === c} onClick={() => setCurrency(c)} disabled={estimating}
+                    className={cn("rounded-md px-2.5 py-1.5", currency === c ? "surface shadow-sm" : "text-muted")}>{c}</button>
+                ))}
+              </div>
             </div>
-            {estimateNotice && <Alert tone="info" className="mb-3">{estimateNotice}</Alert>}
+            {estimateNotice && <Alert tone="info" className="mb-2">{estimateNotice}</Alert>}
 
-            <ul className="space-y-2" role="radiogroup" aria-label="Ride option">
+            <ul className={cn("space-y-2", estimating && "opacity-60")} role="radiogroup" aria-label="Ride option">
               {categories.map((c) => {
                 const est = estimates.find((e) => e.category === c.code);
                 const disabled = !est || Boolean(est.error);
                 return (
                   <li key={c.code}>
                     <button role="radio" aria-checked={selected === c.code} disabled={disabled} onClick={() => setSelected(c.code)}
-                      className={cn("flex w-full items-center gap-3 rounded-xl border p-3 text-left transition",
+                      className={cn("flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
                         selected === c.code ? "border-brand-500 bg-brand-50" : "border-line", disabled && "opacity-50")}>
-                      <Car className="h-6 w-6 text-brand-600" aria-hidden />
-                      <span className="flex-1">
-                        <span className="block font-semibold">{c.name}</span>
-                        <span className="text-muted flex items-center gap-1 text-xs"><Users className="h-3 w-3" />{c.seats} · {c.description}</span>
+                      <Car className="h-6 w-6 shrink-0 text-brand-600" aria-hidden />
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 font-semibold">{c.name}
+                          <span className="text-muted flex items-center gap-0.5 text-xs font-normal"><Users className="h-3 w-3" />{c.seats}</span></span>
+                        <span className="text-muted block truncate text-xs">{c.description}</span>
                       </span>
                       <span className="text-right">
                         {est?.error ? <span className="text-muted text-xs">{est.error}</span> : (
@@ -318,7 +364,24 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
               })}
             </ul>
 
-            {bidBounds && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+              {bidBounds && !showOffer && (
+                <button className="font-medium text-brand-600" onClick={() => setShowOffer(true)}>Offer your own price</button>
+              )}
+              {!showCoupon && (
+                <button className="flex items-center gap-1 font-medium text-brand-600" onClick={() => setShowCoupon(true)}>
+                  <Tag className="h-3.5 w-3.5" /> {coupon ? `Promo ${coupon}` : "Add promo code"}
+                </button>
+              )}
+            </div>
+            {showCoupon && (
+              <form className="mt-2 flex gap-2" onSubmit={(e) => { e.preventDefault(); setShowCoupon(false); void priceTrip(); }}>
+                <Input value={coupon} onChange={(e) => setCoupon(e.target.value.toUpperCase())} placeholder="Promo code" aria-label="Promo code" maxLength={32} autoFocus />
+                <Button type="submit" variant="secondary" loading={estimating}>Apply</Button>
+              </form>
+            )}
+
+            {bidBounds && showOffer && (
               <div className="mt-3 rounded-xl border border-dashed border-line p-3">
                 <label htmlFor="offer" className="text-sm font-medium">Offer your price <Badge tone="brand">optional</Badge></label>
                 <p className="text-muted text-xs">Drivers can accept or counter. Allowed: {money(bidBounds.min, currency)} – {money(bidBounds.max, currency)}.</p>
@@ -330,7 +393,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             <div className="mt-3 grid grid-cols-3 gap-2" role="radiogroup" aria-label="Payment method">
               {(Object.keys(PAYMENT_LABEL) as PaymentMethod[]).map((p) => (
                 <button key={p} role="radio" aria-checked={payment === p} onClick={() => setPayment(p)}
-                  className={cn("flex flex-col items-center gap-1 rounded-xl border p-2 text-xs font-medium",
+                  className={cn("flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-medium",
                     payment === p ? "border-brand-500 bg-brand-50" : "border-line")}>
                   {p === "cash" ? <Banknote className="h-4 w-4" /> : <Smartphone className="h-4 w-4" />}
                   {PAYMENT_LABEL[p]}
@@ -342,9 +405,13 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             )}
 
             {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
-            <Button size="lg" className="mt-4 w-full" disabled={!chosen} loading={booking} onClick={confirm}>
-              {offer.trim() && bidBounds ? "Send offer to drivers" : `Confirm ${categories.find((c) => c.code === selected)?.name ?? ""}`}
-            </Button>
+            {/* Stays visible while the options scroll. */}
+            <div className="surface sticky -bottom-4 -mx-4 mt-3 px-4 pb-4 pt-2">
+              <Button size="lg" className="w-full" disabled={!chosen} loading={booking} onClick={confirm}>
+                {offer.trim() && bidBounds ? "Send offer to drivers" : `Confirm ${categories.find((c) => c.code === selected)?.name ?? ""}`}
+                {chosen?.totalMinor && !offer.trim() && <span className="opacity-80">· {money(chosen.totalMinor, chosen.currency ?? currency)}</span>}
+              </Button>
+            </div>
           </>
         )}
       </section>
