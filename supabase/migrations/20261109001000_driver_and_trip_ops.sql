@@ -177,12 +177,10 @@ begin
     return jsonb_build_object('accepted', false, 'reason', 'not_approved');
   end if;
 
+  -- An offline driver's fix is accepted as the pre-flight position needed to go online;
+  -- it does not make them dispatchable (dispatch requires is_online).
   select b.* into v_booking from public.bookings b
    where b.driver_id = v_uid and b.status in ('DRIVER_ASSIGNED', 'DRIVER_ARRIVING', 'DRIVER_ARRIVED', 'IN_PROGRESS');
-  if not v_d.is_online and v_booking.id is null then
-    -- Allowed only as a pre-flight fix immediately before going online.
-    null;
-  end if;
 
   if v_rec < now() - interval '2 minutes' then
     return jsonb_build_object('accepted', false, 'reason', 'stale_fix');
