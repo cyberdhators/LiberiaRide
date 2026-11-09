@@ -7,7 +7,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 23 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 24 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -46,7 +46,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Staff & roles page (`/admin/staff`): grant/revoke support agent, fleet operator, admin (super admin only) | ✅ |
 | Saved places (Home, Work, named; from GPS, search or a starred recent trip) | ✅ |
 | In-app notifications (`/notifications`, live unread badge via Realtime) | ✅ |
-| Fleet operator pages | ⬜ |
+| Fleets: admin creates a fleet for an owner; drivers join by code (Earnings page); operator console `/fleet` (drivers, 7-day earnings, remove, rotate code) | ✅ |
 | Categories / service-area editor, avatar upload, vehicle switching, document-expiry reminders, refunds, geofence events | ⬜ |
 
 ## Payments and messaging
@@ -66,7 +66,8 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Real-DB integration (`RUN_DB_TESTS=1`) | ✅ |
 | SQL lifecycle/security test (`supabase/tests/lifecycle_test.sql`) | ✅ `FAILURES: []` |
 | SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
-| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification | ✅ 4/4 |
+| SQL fleet test (`supabase/tests/fleet_test.sql`) | ✅ `FAILURES: []` (19 checks) |
+| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove | ✅ 5/5 |
 
 ## Quality, later
 

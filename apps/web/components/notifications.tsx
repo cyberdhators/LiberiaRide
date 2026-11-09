@@ -14,7 +14,9 @@ export interface NotificationRow {
 /** Where tapping a notification goes. Server-defined kinds; unknown kinds have no link. */
 export function notificationHref(n: Pick<NotificationRow, "kind" | "data">): string | null {
   const bookingId = typeof n.data?.booking_id === "string" ? n.data.booking_id : null;
+  if (n.kind === "driver.fleet_removed") return "/driver/earnings";
   if (n.kind === "booking.assigned" || n.kind.startsWith("driver.")) return "/driver";
+  if (n.kind.startsWith("fleet.")) return "/fleet";
   if (bookingId) return `/passenger/trip/${bookingId}`;
   return null;
 }

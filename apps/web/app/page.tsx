@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Car, LayoutDashboard, MapPin, ShieldCheck, Smartphone } from "lucide-react";
+import { Car, LayoutDashboard, MapPin, ShieldCheck, Smartphone, Users } from "lucide-react";
 import { getSessionUser, hasAnyRole, STAFF_ROLES } from "@/lib/auth";
 import { buttonVariants } from "@/components/ui";
 import { createClient } from "@/lib/supabase/server";
@@ -36,6 +36,11 @@ export default async function Home() {
         <Link href="/driver" className={buttonVariants({ size: "lg", variant: "secondary" })}>
           <Car className="h-5 w-5" aria-hidden /> Drive with LiberiaRide
         </Link>
+        {user && hasAnyRole(user, ["fleet_operator"]) && (
+          <Link href="/fleet" className={buttonVariants({ size: "lg", variant: "ghost" })}>
+            <Users className="h-5 w-5" aria-hidden /> Fleet console
+          </Link>
+        )}
         {user && hasAnyRole(user, STAFF_ROLES) && (
           <Link href="/admin" className={buttonVariants({ size: "lg", variant: "ghost" })}>
             <LayoutDashboard className="h-5 w-5" aria-hidden /> Operations dashboard

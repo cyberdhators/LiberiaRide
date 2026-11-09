@@ -53,13 +53,22 @@ Two surfaces:
 | `driver_mark_arriving`, `driver_mark_arrived`, `driver_start_trip`, `driver_record_stop`, `driver_complete_trip` | trip |
 | `driver_confirm_cash_collected(booking, amount_minor)` | reconciliation |
 | `driver_cancel_booking(booking, reason)` | re-dispatch, or no-show fee |
+| `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |
 
 ### Operations (permission-checked, audited)
 `admin_review_driver`, `admin_review_vehicle`, `admin_review_document`, `admin_set_user_suspension`,
 `admin_set_role`, `admin_assign_driver`, `admin_assignable_drivers`, `admin_cancel_booking`,
 `admin_upsert_fare_rule`, `admin_create_promotion`, `admin_set_promotion_active`, `admin_set_config`,
 `admin_upsert_alias`, `admin_update_case`, `admin_reconcile_cash`, `admin_create_settlement`,
-`admin_mark_settlement_paid`, `admin_dashboard_stats`, `admin_live_map`; fleet: `fleet_overview`.
+`admin_mark_settlement_paid`, `admin_dashboard_stats`, `admin_live_map`,
+`admin_create_fleet(owner, name, phone?)` (makes the owner a fleet operator), `admin_set_fleet_active`, `admin_set_driver_fleet`.
+
+`admin_set_role` rules: only a super admin changes `admin`/`super_admin`; `passenger`/`driver` are not managed here;
+you cannot remove your own admin role; the last super admin cannot be removed; no roles for suspended accounts.
+
+### Fleet operator
+`fleet_overview()` (own fleets, drivers, 7-day trips and net earnings), `fleet_remove_driver(driver)`,
+`fleet_regenerate_code(fleet)`. Operators read their drivers' rows, earnings and settlements through RLS.
 
 ### Anonymous
 `get_shared_trip(token)`.

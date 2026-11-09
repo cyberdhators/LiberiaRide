@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, money } from "@/lib/utils";
 import { Badge, Card, EmptyState, Stat } from "@/components/ui";
+import { FleetMembership } from "@/components/driver/fleet-membership";
 
 export const metadata = { title: "Earnings" };
 
@@ -9,12 +10,13 @@ export default async function EarningsPage() {
   const user = await requireUser("/driver/earnings");
   const supabase = await createClient();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
-  const [{ data: earnings }, { data: settlements }, { data: cash }] = await Promise.all([
+  const [{ data: earnings }, { data: settlements }, { data: cash }, { data: driver }] = await Promise.all([
     supabase.from("driver_earnings").select("id, booking_id, currency, gross_minor, commission_minor, net_minor, payment_method, settlement_id, created_at, bookings(code)")
       .eq("driver_id", user.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("driver_settlements").select("id, currency, period_start, period_end, net_payable_minor, status, paid_at, payout_reference")
       .eq("driver_id", user.id).order("period_end", { ascending: false }).limit(20),
     supabase.from("cash_reconciliation").select("currency, expected_minor, collected_minor, status").eq("driver_id", user.id).is("settlement_id", null),
+    supabase.from("drivers").select("fleet_id, fleets!drivers_fleet_id_fkey(name)").eq("id", user.id).maybeSingle(),
   ]);
 
   const week = (earnings ?? []).filter((e) => e.created_at >= weekAgo);
@@ -72,6 +74,8 @@ export default async function EarningsPage() {
           </ul>
         )}
       </section>
+
+      {driver && <FleetMembership fleetName={(driver.fleets as unknown as { name: string } | null)?.name ?? null} />}
     </main>
   );
 }
