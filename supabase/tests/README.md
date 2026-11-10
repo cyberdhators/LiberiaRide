@@ -13,6 +13,9 @@ Run (any of):
 
 `trust_test.sql` covers migration 0026: ride PIN privacy and lockout, GPS-verified arrival,
 upfront price vs. early drop-off billing, broadcast acceptance fairness and trip GPS retention.
+`push_test.sql` covers migration 0028: push privileges (dispatcher RPCs service-role only), push
+service allowlist, subscription/outbox privacy, offer/arrival/notification enqueueing, claim/report,
+and offline track upload validation.
 
 Last run: 2026-11-10 against project ymohklpojfyrlptiwvjr — lifecycle and trust tests FAILURES: [] (see docs/CHECKLIST.md).
 

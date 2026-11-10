@@ -7,7 +7,7 @@ Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 27 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 28 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -25,6 +25,10 @@ Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Trust: start-ride PIN, GPS-verified arrival/no-show, upfront price, billing on distance actually driven | ✅ | migration 0026 |
 | Fair acceptance rate (lost broadcast offers not counted), trip GPS retention 90 days | ✅ | migration 0026 |
 | Driver "Cancel — reassign" works (was blocked by a constraint); PIN tries reset for the next driver | ✅ | migration 0027 |
+| Push alerts: ride requests (urgent, vibrate, stay on screen), driver assigned/arrived, all notifications | ✅ | migration 0028 + Edge Function `push-dispatch`; verify on a real phone |
+| Never miss a ride: in-page sound alert, 10–30 s polling when Realtime drops, refresh on focus/reconnect | ✅ | |
+| Offline GPS: fixes queued on the phone during network gaps, uploaded with `driver_upload_track` before billing | ✅ | migration 0028 |
+| Installable app (manifest, PNG/maskable icons, Apple icon) and offline page | ✅ | service worker `public/sw.js` |
 | Realtime (private broadcast channels) | ✅ | |
 | Audit log | ✅ | |
 
@@ -66,18 +70,19 @@ Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 
 | Suite | Status |
 |---|---|
-| Unit (Vitest): 65 tests | ✅ |
+| Unit (Vitest): 67 tests (incl. VAPID signing) | ✅ |
 | Real-DB integration (`RUN_DB_TESTS=1`) | ✅ |
 | SQL lifecycle/security test (`supabase/tests/lifecycle_test.sql`) | ✅ `FAILURES: []` |
 | SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
 | SQL fleet test (`supabase/tests/fleet_test.sql`) | ✅ `FAILURES: []` (19 checks) |
 | SQL areas test (`supabase/tests/areas_test.sql`) | ✅ `FAILURES: []` |
+| SQL push & offline-track test (`supabase/tests/push_test.sql`) | ✅ `FAILURES: []` |
 | SQL trust & billing test (`supabase/tests/trust_test.sql`) | ✅ `FAILURES: []` (33 checks, incl. lockout → reassign → new driver starts) |
-| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas | ✅ 6/6 |
+| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page | ✅ 8/8 |
 
 ## Quality, later
 
-Error tracking (Sentry), PWA/offline shell, load testing, accessibility audit.
+Error tracking (Sentry), load testing, accessibility audit.
 
 ## Needs the owner
 

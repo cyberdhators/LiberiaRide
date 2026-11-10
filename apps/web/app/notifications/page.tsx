@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationList, type NotificationRow } from "@/components/notifications";
+import { PushToggle } from "@/components/push-toggle";
 
 export const metadata = { title: "Notifications" };
 export const dynamic = "force-dynamic";
@@ -24,6 +25,7 @@ export default async function NotificationsPage() {
         </Link>
         <h1 className="text-xl font-bold">Notifications</h1>
       </div>
+      <PushToggle className="mb-4" title="Phone alerts" description="Get ride and trip alerts on this device even when LiberiaRide is closed." />
       <NotificationList userId={user.id} initial={(data ?? []) as NotificationRow[]} />
     </main>
   );

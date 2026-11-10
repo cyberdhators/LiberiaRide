@@ -9,11 +9,13 @@ import { createClient } from "@/lib/supabase/client";
 import { useRealtime } from "@/hooks/use-realtime";
 import { getCurrentFix } from "@/hooks/use-geolocation";
 import { userMessage } from "@/lib/errors";
+import { playRideAlert } from "@/lib/alert-sound";
 import { cn, formatDateTime, money, timeAgo } from "@/lib/utils";
 import { Map, type MapMarker } from "@/components/map";
 import { Alert, Badge, Button, Card, Textarea } from "@/components/ui";
 import { ChatPanel } from "@/components/chat-panel";
 import { PayNow } from "./pay-now";
+import { PushToggle } from "@/components/push-toggle";
 
 interface Pt { lat: number; lng: number; address?: string }
 export interface BookingView {
@@ -70,6 +72,32 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
   }, reload);
 
   const status = view.status;
+
+  // Safety net when Realtime silently drops: poll, and refresh on focus / reconnect / push.
+  useEffect(() => {
+    if (isTerminal(status)) return;
+    const wake = () => { if (document.visibilityState === "visible") void reload(); };
+    const t = setInterval(wake, channel === "live" ? 30_000 : 10_000);
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    window.addEventListener("lr:push", wake);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      window.removeEventListener("lr:push", wake);
+    };
+  }, [reload, channel, status]);
+
+  // Chime once when the driver reaches the pickup.
+  const [chimedArrival, setChimedArrival] = useState(initial.status === "DRIVER_ARRIVED");
+  useEffect(() => {
+    if (status === "DRIVER_ARRIVED" && !chimedArrival) {
+      setChimedArrival(true);
+      playRideAlert(1);
+    }
+  }, [status, chimedArrival]);
+
   const showPin = status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING" || status === "DRIVER_ARRIVED";
 
   // Ride PIN: readable by the passenger only (RLS); the driver needs it to start the trip.
@@ -264,6 +292,10 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
         </div>
 
         {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
+
+        {!isTerminal(status) && (
+          <PushToggle className="mt-3" title="Trip alerts" description="Get notified when your driver accepts and arrives, even with the screen off." />
+        )}
 
         {passengerCanCancel(status) && (
           confirmCancel ? (

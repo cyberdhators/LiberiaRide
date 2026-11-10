@@ -54,6 +54,8 @@ Two surfaces:
 | `driver_start_trip(booking, pin?)` | returns `{ok, reason?, attempts_left?}`; web bookings need the passenger's 4-digit ride PIN (`booking_start_pins`, passenger-readable only); wrong tries are counted, 5 lock it (driver reassigns). Other channels need proximity to the pickup |
 | `driver_confirm_cash_collected(booking, amount_minor)` | reconciliation |
 | `driver_cancel_booking(booking, reason)` | re-dispatch to another driver (PIN tries reset), or `passenger_no_show` fee after the wait — needs a fresh GPS fix at the pickup |
+| `driver_upload_track(booking, points[])` | up to 300 buffered GPS fixes taken during an in-progress trip; same accuracy/plausibility rules as live updates; returns `{accepted, rejected}` |
+| `push_subscribe(endpoint, p256dh, auth, ua?)`, `push_unsubscribe(endpoint)`, `push_public_key()`, `push_take_recent()` | phone alerts (any signed-in user); endpoints limited to real push services |
 | `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |
 
 ### Operations (permission-checked, audited)

@@ -48,6 +48,22 @@ project, `supabase db push` from a clean state works.
 6. **First administrator:** sign in once, then run (SQL editor, as postgres):
    `select public.bootstrap_super_admin('<your auth user id>');` — works only while no super admin exists.
 
+## Push alerts (Web Push)
+
+Ride requests reach drivers whose screen is off through Web Push. Per Supabase project:
+
+1. Deploy the Edge Function **without** JWT verification (it checks its own key):
+   `supabase functions deploy push-dispatch --no-verify-jwt` (source: `supabase/functions/push-dispatch/`).
+2. Point the database at it (Admin → Fares & config, or SQL):
+   `push.dispatch_url` = `https://<project-ref>.supabase.co/functions/v1/push-dispatch`.
+3. Set `push.vapid_subject` to a real contact (`mailto:` address or `https://` site) — push services use it
+   to reach the operator.
+
+Nothing else is configured by hand: migration 0028 stores the database→function key in Vault
+(`push_invoke_key`), and the function generates the VAPID key pair on its first run (Vault `push_vapid`).
+Leaving `push.dispatch_url` empty switches push off; the in-app sound, polling and Realtime still work.
+iPhone users must add LiberiaRide to the Home Screen before alerts can be turned on (iOS 16.4+).
+
 ## Vercel
 
 1. Import the GitHub repo `cyberdhators/LiberiaRide`.

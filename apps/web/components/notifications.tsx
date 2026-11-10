@@ -6,19 +6,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useRealtime } from "@/hooks/use-realtime";
 import { formatDateTime } from "@/lib/utils";
 import { EmptyState } from "@/components/ui";
+import { notificationHref } from "@/lib/notification-href";
+
+export { notificationHref };
 
 export interface NotificationRow {
   id: string; kind: string; title: string; body: string | null; data: Record<string, unknown>; read_at: string | null; created_at: string;
-}
-
-/** Where tapping a notification goes. Server-defined kinds; unknown kinds have no link. */
-export function notificationHref(n: Pick<NotificationRow, "kind" | "data">): string | null {
-  const bookingId = typeof n.data?.booking_id === "string" ? n.data.booking_id : null;
-  if (n.kind === "driver.fleet_removed") return "/driver/earnings";
-  if (n.kind === "booking.assigned" || n.kind.startsWith("driver.")) return "/driver";
-  if (n.kind.startsWith("fleet.")) return "/fleet";
-  if (bookingId) return `/passenger/trip/${bookingId}`;
-  return null;
 }
 
 async function unreadCount(): Promise<number> {

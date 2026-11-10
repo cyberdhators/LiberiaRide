@@ -8,10 +8,13 @@ import { createClient } from "@/lib/supabase/client";
 import { getCurrentFix, useDeviceStatus, useGeoWatch, type Fix } from "@/hooks/use-geolocation";
 import { useRealtime } from "@/hooks/use-realtime";
 import { userMessage } from "@/lib/errors";
+import { playRideAlert, unlockAlertSound } from "@/lib/alert-sound";
+import { dropTrackPoints, queueTrackPoint, readTrack } from "@/lib/track-queue";
 import { cn, money, timeAgo } from "@/lib/utils";
 import { Map, type MapMarker } from "@/components/map";
 import { Alert, Badge, Button, Card, Input } from "@/components/ui";
 import { ChatPanel } from "@/components/chat-panel";
+import { PushToggle } from "@/components/push-toggle";
 import { OfferCard, type Offer } from "./offer-card";
 
 export interface DriverDashboard {
@@ -59,6 +62,10 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
   const [now, setNow] = useState(() => Date.now());
   const lastSentAt = useRef(0);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
+  const activeRef = useRef(active);
+  activeRef.current = active;
+  const seenOffers = useRef(new Set(initial.offers.map((o) => o.offer_id)));
+  const flushing = useRef(false);
 
   const { visible, online: networkOnline } = useDeviceStatus();
   const tracking = sharing || dash.is_online || Boolean(active);
@@ -89,26 +96,73 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
     offer: (p) => {
       const o = p as unknown as Offer;
       setOffers((list) => o.status === "pending" ? [...list.filter((x) => x.offer_id !== o.offer_id), o] : list.filter((x) => x.offer_id !== o.offer_id));
-      if (o.status === "pending" && "vibrate" in navigator) navigator.vibrate?.([200, 100, 200]);
     },
     bid: () => void refresh(),
   }, refresh);
   useRealtime(active ? `booking:${active.id}` : null, { booking_status: () => void refresh() }, refresh);
 
+  // A new ride request: sound + vibration, whether it came by Realtime, polling or push.
+  useEffect(() => {
+    const fresh = offers.filter((o) => !seenOffers.current.has(o.offer_id));
+    for (const o of offers) seenOffers.current.add(o.offer_id);
+    if (fresh.length) playRideAlert();
+  }, [offers]);
+
   // ----- GPS upload -----
+  // Fixes taken during a trip while the network is down are queued on the phone and uploaded later.
+  const flushTrack = useCallback(async () => {
+    const trip = activeRef.current?.status === "IN_PROGRESS" ? activeRef.current.id : null;
+    if (!trip || flushing.current || !navigator.onLine) return;
+    flushing.current = true;
+    try {
+      for (let q = readTrack(trip); q.length; q = readTrack(trip)) {
+        const batch = q.slice(0, 300);
+        const { data, error } = await supabase.rpc("driver_upload_track", { p_booking_id: trip, p_points: batch });
+        if (error) break;
+        dropTrackPoints(trip, (data as { reason?: string })?.reason === "trip_not_in_progress" ? q.length : batch.length);
+      }
+    } finally {
+      flushing.current = false;
+    }
+  }, [supabase]);
+
   const send = useCallback(async (f: Fix) => {
     lastSentAt.current = Date.now();
+    const point = { lat: f.lat, lng: f.lng, accuracy_m: Math.round(f.accuracy), speed_mps: f.speed, recorded_at: new Date(f.timestamp).toISOString() };
+    const trip = activeRef.current?.status === "IN_PROGRESS" ? activeRef.current.id : null;
     const { data, error } = await supabase.rpc("driver_update_location", {
-      p_lat: f.lat, p_lng: f.lng, p_accuracy_m: Math.round(f.accuracy), p_heading_deg: f.heading, p_speed_mps: f.speed,
-      p_recorded_at: new Date(f.timestamp).toISOString(),
+      p_lat: f.lat, p_lng: f.lng, p_accuracy_m: point.accuracy_m, p_heading_deg: f.heading, p_speed_mps: f.speed,
+      p_recorded_at: point.recorded_at,
     });
     if (error) {
+      if (trip) queueTrackPoint(trip, point);
       setLastSent({ at: Date.now(), accepted: false, reason: "network" });
       return;
     }
     const res = data as { accepted: boolean; reason?: string };
+    if (trip && !res.accepted && res.reason === "stale_fix") queueTrackPoint(trip, point);
+    else if (trip && res.accepted && readTrack(trip).length) void flushTrack();
     setLastSent({ at: Date.now(), accepted: res.accepted, reason: res.reason });
-  }, [supabase]);
+  }, [supabase, flushTrack]);
+
+  // Safety net when Realtime silently drops: poll, and refresh on focus / reconnect / push.
+  useEffect(() => {
+    const wake = () => {
+      if (document.visibilityState !== "visible") return;
+      void refresh();
+      void flushTrack();
+    };
+    const t = setInterval(wake, offerChannel === "live" ? 30_000 : 10_000);
+    document.addEventListener("visibilitychange", wake);
+    window.addEventListener("online", wake);
+    window.addEventListener("lr:push", wake);
+    return () => {
+      clearInterval(t);
+      document.removeEventListener("visibilitychange", wake);
+      window.removeEventListener("online", wake);
+      window.removeEventListener("lr:push", wake);
+    };
+  }, [refresh, flushTrack, offerChannel]);
 
   useEffect(() => {
     if (!fix || !tracking) return;
@@ -152,6 +206,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
   }
 
   async function goOnline() {
+    unlockAlertSound();
     setSharing(true);
     setError(null);
     setBusy("online");
@@ -326,7 +381,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
                 <WaitTimer since={active.arrived_at} now={now} />
               </>
             )}
-            {active.status === "IN_PROGRESS" && <Button size="lg" variant="success" className="w-full" loading={busy === "driver_complete_trip"} onClick={() => bookingAction("driver_complete_trip")}>Complete trip</Button>}
+            {active.status === "IN_PROGRESS" && <Button size="lg" variant="success" className="w-full" loading={busy === "driver_complete_trip"} onClick={async () => { await flushTrack(); await bookingAction("driver_complete_trip"); }}>Complete trip</Button>}
 
             {active.status === "COMPLETED" && (
               <Card className="space-y-2 p-3">
@@ -381,6 +436,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
             {dash.vehicle && (
               <p className="text-muted text-xs">{dash.vehicle.category_name} · {dash.vehicle.color} {dash.vehicle.make} {dash.vehicle.model} · {dash.vehicle.plate}</p>
             )}
+            <PushToggle title="Ride request alerts" description="Get a loud alert for new requests even when the screen is off or you are in another app." />
             <Button size="lg" className="w-full" variant={dash.is_online ? "secondary" : "success"} loading={busy === "online"}
               onClick={dash.is_online ? goOffline : goOnline}>
               <Power className="h-5 w-5" /> {dash.is_online ? "Go offline" : "Go online"}

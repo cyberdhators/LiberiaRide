@@ -2365,6 +2365,103 @@ export type Database = {
           },
         ]
       }
+      push_outbox: {
+        Row: {
+          body: string | null
+          created_at: string
+          data: Json
+          dispatched_at: string | null
+          id: number
+          kind: string
+          shown_at: string | null
+          title: string
+          ttl_seconds: number
+          urgent: boolean
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          dispatched_at?: string | null
+          id?: never
+          kind: string
+          shown_at?: string | null
+          title: string
+          ttl_seconds?: number
+          urgent?: boolean
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          data?: Json
+          dispatched_at?: string | null
+          id?: never
+          kind?: string
+          shown_at?: string | null
+          title?: string
+          ttl_seconds?: number
+          urgent?: boolean
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_outbox_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      push_subscriptions: {
+        Row: {
+          auth_secret: string
+          created_at: string
+          endpoint: string
+          failures: number
+          id: string
+          last_status: number | null
+          last_success_at: string | null
+          p256dh: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          auth_secret: string
+          created_at?: string
+          endpoint: string
+          failures?: number
+          id?: string
+          last_status?: number | null
+          last_success_at?: string | null
+          p256dh: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          auth_secret?: string
+          created_at?: string
+          endpoint?: string
+          failures?: number
+          id?: string
+          last_status?: number | null
+          last_success_at?: string | null
+          p256dh?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "push_subscriptions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       qls_lookup_cache: {
         Row: {
           created_at: string
@@ -3574,6 +3671,19 @@ export type Database = {
         }
       }
       _new_start_pin: { Args: never; Returns: string }
+      _push_enqueue: {
+        Args: {
+          p_body: string
+          p_data: Json
+          p_kind: string
+          p_title: string
+          p_ttl_seconds: number
+          p_urgent: boolean
+          p_user_id: string
+        }
+        Returns: undefined
+      }
+      _push_kick: { Args: never; Returns: undefined }
       _set_driver_fleet: {
         Args: { p_driver_id: string; p_fleet_id: string }
         Returns: string
@@ -4868,6 +4978,10 @@ export type Database = {
         }
         Returns: Json
       }
+      driver_upload_track: {
+        Args: { p_booking_id: string; p_points: Json }
+        Returns: Json
+      }
       evaluate_coupon: {
         Args: {
           p_category_id: string
@@ -5199,6 +5313,47 @@ export type Database = {
         }
         Returns: undefined
       }
+      push_check_key: { Args: { p_key: string }; Returns: boolean }
+      push_claim_batch: {
+        Args: { p_limit?: number }
+        Returns: {
+          endpoint: string
+          outbox_id: number
+          subscription_id: string
+          ttl_seconds: number
+          urgent: boolean
+        }[]
+      }
+      push_public_key: { Args: never; Returns: string }
+      push_report: { Args: { p_results: Json }; Returns: undefined }
+      push_retry: { Args: never; Returns: undefined }
+      push_set_vapid: {
+        Args: { p_private_jwk: Json; p_public_key: string }
+        Returns: Json
+      }
+      push_subscribe: {
+        Args: {
+          p_auth: string
+          p_endpoint: string
+          p_p256dh: string
+          p_user_agent?: string
+        }
+        Returns: string
+      }
+      push_take_recent: {
+        Args: never
+        Returns: {
+          body: string
+          created_at: string
+          data: Json
+          id: number
+          kind: string
+          title: string
+          urgent: boolean
+        }[]
+      }
+      push_unsubscribe: { Args: { p_endpoint: string }; Returns: undefined }
+      push_vapid: { Args: never; Returns: Json }
       raise_sos: {
         Args: {
           p_booking_id: string
