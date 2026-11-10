@@ -1,13 +1,13 @@
 # Implementation checklist
 
-Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on something external · ⬜ not started · ⏸ paused.
+Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on something external · ⬜ not started · ⏸ paused.
 
 ## Platform
 
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 25 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 26 migrations, PostGIS, pg_cron | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -22,6 +22,8 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | Server-side fares (USD / LRD), coupons, promotions | ✅ | fare values are **placeholders** until real prices are set |
 | Dispatch: nearest, sequential, soft, broadcast, manual, bidding | ✅ | 3 concurrent accepts → exactly one winner (integration test) |
 | Idempotency on booking creation | ✅ | concurrent duplicate requests → one booking |
+| Trust: start-ride PIN, GPS-verified arrival/no-show, upfront price, billing on distance actually driven | ✅ | migration 0026 |
+| Fair acceptance rate (lost broadcast offers not counted), trip GPS retention 90 days | ✅ | migration 0026 |
 | Realtime (private broadcast channels) | ✅ | |
 | Audit log | ✅ | |
 
@@ -69,6 +71,7 @@ Status as of 9 Nov 2026. ✅ done and verified · 🟡 built, waiting on somethi
 | SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
 | SQL fleet test (`supabase/tests/fleet_test.sql`) | ✅ `FAILURES: []` (19 checks) |
 | SQL areas test (`supabase/tests/areas_test.sql`) | ✅ `FAILURES: []` |
+| SQL trust & billing test (`supabase/tests/trust_test.sql`) | ✅ `FAILURES: []` (30 checks) |
 | Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas | ✅ 6/6 |
 
 ## Quality, later
@@ -77,6 +80,5 @@ Error tracking (Sentry), PWA/offline shell, load testing, accessibility audit.
 
 ## Needs the owner
 
-1. Your sign-in email, to make you the first super admin (`bootstrap_super_admin`).
-2. "Deploy" to publish a Vercel preview.
-3. Real fares, an SMS provider, MTN MoMo credentials, Orange Money documentation.
+1. "Deploy" to publish a Vercel preview.
+2. Real fares, an SMS provider, MTN MoMo credentials, Orange Money documentation.

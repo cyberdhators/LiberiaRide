@@ -47,7 +47,8 @@ begin
   r := r || jsonb_build_object('t00_profiles_created', n = 5);
   select phone into j from (select to_jsonb(phone) phone from public.profiles where id = pax) x;
   r := r || jsonb_build_object('t00_phone_normalised', j = '"+231770000001"'::jsonb);
-  perform public.bootstrap_super_admin(adm);
+  -- bootstrap_super_admin is a no-op once a real super admin exists; grant directly (rolled back).
+  insert into public.user_roles(user_id, role) values (adm, 'admin'), (adm, 'super_admin') on conflict do nothing;
 
   -- 1. Driver onboarding (as each driver)
   foreach procedure_name in array array['d1', 'd2'] loop
@@ -232,14 +233,17 @@ begin
   r := r || jsonb_build_object('t08_driver_realtime_booking', public.realtime_can_read('booking:' || v_b.id));
   perform public.driver_mark_arriving(v_b.id);
   perform public.driver_mark_arrived(v_b.id);
-  perform public.driver_start_trip(v_b.id);
+  reset role;
+  select to_jsonb(pin) into j from public.booking_start_pins where booking_id = v_b.id;
+  set local role authenticated;
+  r := r || jsonb_build_object('t08_start_with_pin', public.driver_start_trip(v_b.id, j #>> '{}') ->> 'ok');
   v_b := public.driver_complete_trip(v_b.id);
-  -- No GPS track inside one transaction → billed distance falls back to the estimate,
-  -- and the time charge uses the real (zero) duration, so final <= estimate.
+  -- The driver ends the trip at the pickup (far from the destination) with no GPS track:
+  -- billed on the distance actually driven (≈ 0 → minimum fare), never the full estimate.
   r := r || jsonb_build_object('t08_status_final', v_b.status, 't08_final_fare_minor', v_b.final_fare_minor,
                                't08_final_not_above_estimate', v_b.final_fare_minor <= v_est.total_minor,
-                               't08_billed_from_estimate', (select distance_source = 'estimate' and billed_distance_m = v_est.distance_m
-                                                             from public.trips where booking_id = v_b.id));
+                               't08_not_billed_from_estimate', (select distance_source in ('gps_track', 'straight_line') and billed_distance_m < v_est.distance_m
+                                                                 from public.trips where booking_id = v_b.id));
   perform public.driver_confirm_cash_collected(v_b.id, v_b.final_fare_minor);
   reset role;
 

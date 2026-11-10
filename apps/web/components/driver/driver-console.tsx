@@ -31,7 +31,7 @@ export interface DriverDashboard {
 }
 
 interface ActiveView {
-  id: string; code: string; status: string; currency: string;
+  id: string; code: string; status: string; channel: string; currency: string;
   pickup: { lat: number; lng: number; address: string }; dropoff: { lat: number; lng: number; address: string };
   stops: { id: string; seq: number; kind: string; address: string; lat: number; lng: number; arrived_at: string | null; departed_at: string | null }[];
   estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null;
@@ -175,6 +175,22 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
   const bookingAction = (rpc: string, extra: Record<string, unknown> = {}) =>
     run(rpc, () => supabase.rpc(rpc, { p_booking_id: active!.id, ...extra }));
 
+  async function startTrip(pin: string | null) {
+    if (!active) return;
+    setBusy("driver_start_trip");
+    setError(null);
+    const { data, error } = await supabase.rpc("driver_start_trip", { p_booking_id: active.id, p_pin: pin });
+    setBusy(null);
+    const res = data as { ok: boolean; reason?: string; attempts_left?: number } | null;
+    if (error) setError(userMessage(error));
+    else if (res && !res.ok) {
+      setError(res.reason === "wrong_pin"
+        ? `Wrong PIN. ${res.attempts_left} ${res.attempts_left === 1 ? "try" : "tries"} left — ask the passenger to check their app.`
+        : "Enter the passenger's 4-digit ride PIN.");
+    }
+    await refresh();
+  }
+
   async function confirmCash() {
     if (!active) return;
     const minor = Math.round(Number(cashInput.replace(/,/g, "")) * 100);
@@ -304,7 +320,9 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
             )}
             {active.status === "DRIVER_ARRIVED" && (
               <>
-                <Button size="lg" variant="success" className="w-full" loading={busy === "driver_start_trip"} onClick={() => bookingAction("driver_start_trip")}>Passenger on board — start trip</Button>
+                {active.channel === "web"
+                  ? <StartWithPin busy={busy === "driver_start_trip"} onStart={(pin) => void startTrip(pin)} />
+                  : <Button size="lg" variant="success" className="w-full" loading={busy === "driver_start_trip"} onClick={() => void startTrip(null)}>Passenger on board — start trip</Button>}
                 <WaitTimer since={active.arrived_at} now={now} />
               </>
             )}
@@ -371,6 +389,21 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
         )}
       </section>
     </div>
+  );
+}
+
+function StartWithPin({ busy, onStart }: { busy: boolean; onStart: (pin: string) => void }) {
+  const [pin, setPin] = useState("");
+  return (
+    <form className="space-y-1" onSubmit={(e) => { e.preventDefault(); if (pin.length === 4) onStart(pin); }}>
+      <label htmlFor="ride-pin" className="text-sm font-medium">Passenger on board? Ask for their 4-digit ride PIN</label>
+      <div className="flex gap-2">
+        <Input id="ride-pin" inputMode="numeric" autoComplete="off" maxLength={4} value={pin} placeholder="••••"
+          onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+          className="text-center font-mono text-lg tracking-[0.5em]" />
+        <Button type="submit" size="lg" variant="success" className="shrink-0" loading={busy} disabled={pin.length !== 4}>Start trip</Button>
+      </div>
+    </form>
   );
 }
 

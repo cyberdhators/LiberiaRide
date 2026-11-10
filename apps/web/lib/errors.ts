@@ -37,6 +37,10 @@ const KNOWN_SAFE_PREFIXES = [
   "driver is not eligible",
   "nothing to settle",
   "cannot cancel in status",
+  "your location is out of date",
+  "you must be at the pickup point",
+  "too many wrong pin attempts",
+  "mark yourself arrived",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

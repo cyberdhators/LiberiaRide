@@ -11,7 +11,10 @@ Run (any of):
 - Supabase MCP `execute_sql`
 - `psql "$SUPABASE_DB_URL" -f supabase/tests/lifecycle_test.sql`
 
-Last run: 2026-11-09 against project ymohklpojfyrlptiwvjr — FAILURES: [] (see docs/CHECKLIST.md).
+`trust_test.sql` covers migration 0026: ride PIN privacy and lockout, GPS-verified arrival,
+upfront price vs. early drop-off billing, broadcast acceptance fairness and trip GPS retention.
+
+Last run: 2026-11-10 against project ymohklpojfyrlptiwvjr — lifecycle and trust tests FAILURES: [] (see docs/CHECKLIST.md).
 
 Not covered here (needs multiple concurrent sessions): true parallel `accept_offer`
 races. Exclusivity is guaranteed by row locks plus the partial unique indexes

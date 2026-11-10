@@ -50,7 +50,8 @@ Two surfaces:
 | `driver_update_location(lat, lng, accuracy, heading?, speed?, recorded_at?)` | returns `{accepted, reason?}`; reasons: `throttled`, `low_accuracy`, `stale_fix`, `implausible_jump`, `not_approved` |
 | `driver_dashboard()` | status, vehicle, documents, location, pending offers, active booking, today |
 | `accept_offer`, `reject_offer`, `driver_counter_bid` | dispatch |
-| `driver_mark_arriving`, `driver_mark_arrived`, `driver_start_trip`, `driver_record_stop`, `driver_complete_trip` | trip |
+| `driver_mark_arriving`, `driver_mark_arrived`, `driver_record_stop`, `driver_complete_trip` | trip; arrival needs a fresh GPS fix within `trip.arrival_radius_m` |
+| `driver_start_trip(booking, pin?)` | returns `{ok, reason?, attempts_left?}`; web bookings need the passenger's 4-digit ride PIN (`booking_start_pins`, passenger-readable only); wrong tries are counted, 5 lock it (driver reassigns). Other channels need proximity to the pickup |
 | `driver_confirm_cash_collected(booking, amount_minor)` | reconciliation |
 | `driver_cancel_booking(booking, reason)` | re-dispatch, or no-show fee |
 | `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |

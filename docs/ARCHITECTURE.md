@@ -83,9 +83,17 @@ one winner) → DRIVER_ASSIGNED → passenger's `booking:<id>` topic updates.
 → `driver_locations` upsert + history (+ `trip_locations` during a trip) → trigger broadcasts
 to `booking:<id>` (only while assigned) and `admin:fleet`.
 
-**Completion** — `driver_complete_trip` computes the final fare server-side from the GPS track
-(or the estimate when the track is incomplete), writes earnings, commission, payment and cash
-reconciliation rows atomically.
+**Completion** — `driver_complete_trip` computes the final fare server-side and writes earnings,
+commission, payment and cash reconciliation rows atomically. Upfront pricing: a trip that ends
+within `trip.dropoff_radius_m` of the destination is billed the quoted price plus waiting; it is
+metered from the GPS track only when that track exceeds the estimate by `fare.upfront_tolerance`.
+A trip that ends away from the destination is billed on the distance actually driven (GPS track or
+straight line × road factor, whichever is larger), never the full estimate.
+
+**Start-ride PIN** — every booking gets a 4-digit PIN in `booking_start_pins`, readable only by the
+passenger. The driver must enter it to start a web booking; wrong attempts persist and lock after
+`trip.start_pin_max_attempts`. Acceptance rate counts only offers the driver could act on
+(accepted, declined, expired), not offers lost to another driver.
 
 ## Technology choices
 

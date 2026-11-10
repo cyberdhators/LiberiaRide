@@ -1,5 +1,5 @@
 "use client";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { MessageCircle, Phone, Share2, ShieldAlert, Star } from "lucide-react";
@@ -47,6 +47,7 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
   const [confirmCancel, setConfirmCancel] = useState(false);
   const [sosSent, setSosSent] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [pin, setPin] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     const { data } = await createClient().rpc("get_booking_view", { p_booking_id: initial.id });
@@ -69,6 +70,14 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
   }, reload);
 
   const status = view.status;
+  const showPin = status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING" || status === "DRIVER_ARRIVED";
+
+  // Ride PIN: readable by the passenger only (RLS); the driver needs it to start the trip.
+  useEffect(() => {
+    if (!showPin || pin) return;
+    void createClient().from("booking_start_pins").select("pin").eq("booking_id", initial.id).maybeSingle()
+      .then(({ data }) => setPin((data?.pin as string | undefined) ?? null));
+  }, [showPin, pin, initial.id]);
   const loc = view.driver_location;
   const locFresh = loc ? isFresh(loc.received_at, FRESH_S, now) : false;
   const target = status === "IN_PROGRESS" ? view.dropoff : view.pickup;
@@ -144,7 +153,7 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
           </div>
           <div className="text-right">
             <p className="font-bold tabular-nums">{money(fare, view.currency)}</p>
-            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Estimate"}</p>
+            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Upfront price"}</p>
           </div>
         </div>
         {channel === "offline" && !isTerminal(status) && (
@@ -190,6 +199,14 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
               </div>
               <span className="rounded-lg border border-line px-2 py-1 font-mono text-sm font-bold tracking-wider">{view.driver.vehicle.plate}</span>
             </div>
+            {showPin && pin && (
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-xl bg-brand-50 px-3 py-2 text-brand-900">
+                <span className="text-sm font-semibold">Ride PIN
+                  <span className="block text-xs font-normal">Check the plate, then tell your driver this PIN once you are in the car.</span>
+                </span>
+                <span className="font-mono text-2xl font-bold tracking-[0.3em]" aria-label={`Ride PIN ${pin.split("").join(" ")}`}>{pin}</span>
+              </div>
+            )}
             <div className="mt-3 text-sm">
               {loc ? (
                 <p className={cn(!locFresh && "text-warn-500")}>

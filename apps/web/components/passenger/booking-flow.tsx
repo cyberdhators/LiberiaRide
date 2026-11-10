@@ -400,6 +400,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
                 </button>
               ))}
             </div>
+            <p className="text-muted mt-2 text-xs">Upfront price: this is what you pay unless you change the route or keep the driver waiting.</p>
             {payment !== "cash" && (
               <p className="text-muted mt-2 text-xs">Mobile money is collected after the trip. If it can&apos;t be completed, you can pay your driver in cash.</p>
             )}

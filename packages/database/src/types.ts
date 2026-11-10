@@ -408,6 +408,38 @@ export type Database = {
           },
         ]
       }
+      booking_start_pins: {
+        Row: {
+          booking_id: string
+          created_at: string
+          failed_attempts: number
+          pin: string
+          verified_at: string | null
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          failed_attempts?: number
+          pin: string
+          verified_at?: string | null
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          failed_attempts?: number
+          pin?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_start_pins_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_stops: {
         Row: {
           address: string
@@ -1773,6 +1805,7 @@ export type Database = {
           created_at: string
           id: string
           is_active: boolean
+          join_code: string
           name: string
           owner_id: string
           phone: string | null
@@ -1782,6 +1815,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          join_code?: string
           name: string
           owner_id: string
           phone?: string | null
@@ -1791,6 +1825,7 @@ export type Database = {
           created_at?: string
           id?: string
           is_active?: boolean
+          join_code?: string
           name?: string
           owner_id?: string
           phone?: string | null
@@ -3538,6 +3573,11 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _new_start_pin: { Args: never; Returns: string }
+      _set_driver_fleet: {
+        Args: { p_driver_id: string; p_fleet_id: string }
+        Returns: string
+      }
       _transition_booking: {
         Args: {
           p_actor_role: string
@@ -3795,6 +3835,25 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_fleet: {
+        Args: { p_name: string; p_owner_id: string; p_phone?: string }
+        Returns: {
+          created_at: string
+          id: string
+          is_active: boolean
+          join_code: string
+          name: string
+          owner_id: string
+          phone: string | null
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fleets"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_create_promotion: {
         Args: {
           p_category_code: string
@@ -3856,6 +3915,7 @@ export type Database = {
         }
       }
       admin_dashboard_stats: { Args: never; Returns: Json }
+      admin_geofences: { Args: never; Returns: Json }
       admin_live_map: { Args: never; Returns: Json }
       admin_mark_settlement_paid: {
         Args: { p_reference: string; p_settlement_id: string }
@@ -4026,6 +4086,14 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_set_driver_fleet: {
+        Args: { p_driver_id: string; p_fleet_id: string }
+        Returns: undefined
+      }
+      admin_set_fleet_active: {
+        Args: { p_active: boolean; p_fleet_id: string }
+        Returns: undefined
+      }
       admin_set_promotion_active: {
         Args: { p_active: boolean; p_promotion_id: string }
         Returns: undefined
@@ -4082,6 +4150,34 @@ export type Database = {
         }
         Returns: string
       }
+      admin_upsert_category: {
+        Args: {
+          p_active: boolean
+          p_code: string
+          p_description: string
+          p_name: string
+          p_seats: number
+          p_sort: number
+        }
+        Returns: {
+          code: string
+          created_at: string
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          name: string
+          seats: number
+          sort_order: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "vehicle_categories"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_upsert_fare_rule: {
         Args: { p_rule: Json }
         Returns: {
@@ -4117,6 +4213,16 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      admin_upsert_geofence: {
+        Args: {
+          p_active: boolean
+          p_code: string
+          p_geojson: Json
+          p_kind: string
+          p_name: string
+        }
+        Returns: Json
       }
       booking_transition_allowed: {
         Args: {
@@ -4589,6 +4695,8 @@ export type Database = {
         }
       }
       driver_dashboard: { Args: never; Returns: Json }
+      driver_join_fleet: { Args: { p_code: string }; Returns: Json }
+      driver_leave_fleet: { Args: never; Returns: undefined }
       driver_mark_arrived: {
         Args: { p_booking_id: string }
         Returns: {
@@ -4746,64 +4854,8 @@ export type Database = {
         }
       }
       driver_start_trip: {
-        Args: { p_booking_id: string }
-        Returns: {
-          agreed_fare_minor: number | null
-          allocation_strategy: Database["public"]["Enums"]["allocation_strategy"]
-          arrived_at: string | null
-          assigned_at: string | null
-          bidding_enabled: boolean
-          cancel_reason: string | null
-          cancellation_fee_minor: number
-          cancelled_at: string | null
-          cancelled_by: string | null
-          cancelled_by_role: string | null
-          category_id: string
-          channel: Database["public"]["Enums"]["booking_channel"]
-          code: string
-          completed_at: string | null
-          confirmed_at: string | null
-          coupon_id: string | null
-          created_at: string
-          currency: Database["public"]["Enums"]["currency_code"]
-          discount_minor: number
-          dispatch_round: number
-          driver_id: string | null
-          dropoff: unknown
-          dropoff_address: string
-          dropoff_qls_ref: string | null
-          estimated_distance_m: number
-          estimated_duration_s: number
-          estimated_fare_minor: number
-          fare_estimate_id: string | null
-          fare_rule_id: string
-          final_fare_minor: number | null
-          id: string
-          idempotency_key: string
-          passenger_id: string
-          passenger_note: string | null
-          passenger_offer_minor: number | null
-          payment_method: Database["public"]["Enums"]["payment_method"]
-          payment_status: Database["public"]["Enums"]["payment_status"]
-          pickup: unknown
-          pickup_address: string
-          pickup_qls_ref: string | null
-          reserved_driver_id: string | null
-          reserved_until: string | null
-          route_polyline: string | null
-          search_expires_at: string | null
-          share_token: string | null
-          started_at: string | null
-          status: Database["public"]["Enums"]["booking_status"]
-          updated_at: string
-          vehicle_id: string | null
-        }
-        SetofOptions: {
-          from: "*"
-          to: "bookings"
-          isOneToOne: true
-          isSetofReturn: false
-        }
+        Args: { p_booking_id: string; p_pin?: string }
+        Returns: Json
       }
       driver_update_location: {
         Args: {
@@ -4868,6 +4920,8 @@ export type Database = {
         }[]
       }
       fleet_overview: { Args: never; Returns: Json }
+      fleet_regenerate_code: { Args: { p_fleet_id: string }; Returns: string }
+      fleet_remove_driver: { Args: { p_driver_id: string }; Returns: undefined }
       geodesic_route_estimate: {
         Args: { p_points: unknown[] }
         Returns: {

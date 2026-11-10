@@ -63,7 +63,7 @@ stateDiagram-v2
 | → SEARCHING_DRIVER | `confirm_booking` | passenger / staff / system |
 | → DRIVER_OFFERED / back to SEARCHING | `dispatch_booking`, `run_dispatch_maintenance` | system (cron, service role) |
 | → DRIVER_ASSIGNED | `accept_offer`, `passenger_accept_bid`, `admin_assign_driver` | driver / passenger / ops |
-| → DRIVER_ARRIVING / ARRIVED / IN_PROGRESS / COMPLETED | `driver_mark_arriving`, `driver_mark_arrived`, `driver_start_trip`, `driver_complete_trip` | assigned driver only |
+| → DRIVER_ARRIVING / ARRIVED / IN_PROGRESS / COMPLETED | `driver_mark_arriving`, `driver_mark_arrived` (fresh GPS near pickup), `driver_start_trip` (ride PIN), `driver_complete_trip` | assigned driver only |
 | → CANCELLED | `passenger_cancel_booking`, `driver_cancel_booking` (no-show), `admin_cancel_booking` | party / ops |
 | → SEARCHING_DRIVER after assignment | `driver_cancel_booking` | assigned driver |
 | → EXPIRED | `run_dispatch_maintenance` | system |
