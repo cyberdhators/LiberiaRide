@@ -107,15 +107,27 @@ begin
   reset role;
   r := r || jsonb_build_object('t03_attempts_persisted', (select failed_attempts from public.booking_start_pins where booking_id = v_b.id) = 5,
                                't03_still_waiting', (select status from public.bookings where id = v_b.id) = 'DRIVER_ARRIVED');
-  update public.booking_start_pins set failed_attempts = 0 where booking_id = v_b.id;   -- ops reset for the rest of the test
+  -- Recovery: the locked-out driver reassigns; the next driver gets a fresh count (same PIN).
   set local role authenticated;
+  perform public.driver_cancel_booking(v_b.id, 'driver_unable');
+  reset role;
+  select id into v_offer from public.booking_offers where booking_id = v_b.id and status = 'pending';
+  r := r || jsonb_build_object('t03_reoffered_to_d2', (select driver_id = d2 from public.booking_offers where id = v_offer));
+  update public.driver_locations set location = public.make_point(6.3004, -10.7985), received_at = now() where driver_id = d2;
+  perform set_config('request.jwt.claims', json_build_object('sub', d2, 'role', 'authenticated')::text, true);
+  set local role authenticated;
+  perform public.accept_offer(v_offer);
+  reset role;
+  r := r || jsonb_build_object('t03_attempts_reset_for_new_driver', (select failed_attempts = 0 and pin = v_pin from public.booking_start_pins where booking_id = v_b.id));
+  set local role authenticated;
+  perform public.driver_mark_arrived(v_b.id);
   j := public.driver_start_trip(v_b.id, v_pin);
   r := r || jsonb_build_object('t03_correct_pin_starts', (j->>'ok')::boolean and j->>'status' = 'IN_PROGRESS');
   reset role;
   r := r || jsonb_build_object('t03_pin_verified_at', (select verified_at is not null from public.booking_start_pins where booking_id = v_b.id));
 
   -- Ends at the destination with a sparse track → the quoted price, exactly.
-  update public.driver_locations set location = public.make_point(6.2396, -10.7068), received_at = now() where driver_id = d1;
+  update public.driver_locations set location = public.make_point(6.2396, -10.7068), received_at = now() where driver_id = d2;
   set local role authenticated;
   v_b := public.driver_complete_trip(v_b.id);
   reset role;
@@ -130,16 +142,16 @@ begin
   v_b := public.create_booking(v_est.id, 'cash', 'trust_' || replace(gen_random_uuid()::text, '-', ''), true, null, null);
   reset role;
   select id into v_offer from public.booking_offers where booking_id = v_b.id and status = 'pending';
-  r := r || jsonb_build_object('t05_offered_to_d2', (select driver_id = d2 from public.booking_offers where id = v_offer));
+  r := r || jsonb_build_object('t05_offered_to_d1', (select driver_id = d1 from public.booking_offers where id = v_offer));
   select pin into v_pin from public.booking_start_pins where booking_id = v_b.id;
-  update public.driver_locations set location = public.make_point(6.3004, -10.7985), received_at = now() where driver_id = d2;
-  perform set_config('request.jwt.claims', json_build_object('sub', d2, 'role', 'authenticated')::text, true);
+  update public.driver_locations set location = public.make_point(6.3004, -10.7985), received_at = now() where driver_id = d1;
+  perform set_config('request.jwt.claims', json_build_object('sub', d1, 'role', 'authenticated')::text, true);
   set local role authenticated;
   perform public.accept_offer(v_offer);
   perform public.driver_mark_arrived(v_b.id);
   perform public.driver_start_trip(v_b.id, v_pin);
   reset role;
-  update public.driver_locations set location = public.make_point(6.2800, -10.7800), received_at = now() where driver_id = d2;
+  update public.driver_locations set location = public.make_point(6.2800, -10.7800), received_at = now() where driver_id = d1;
   set local role authenticated;
   v_b := public.driver_complete_trip(v_b.id);
   reset role;
@@ -167,7 +179,7 @@ begin
   perform public.accept_offer(v_offer);
   reset role;
   r := r || jsonb_build_object('t06_loser_not_penalised', (select acceptance_offers from public.drivers where id = d2) = d2_before,
-                               't06_winner_counted', (select acceptance_offers = 2 and acceptance_accepts = 2 from public.drivers where id = d1));
+                               't06_winner_counted', (select acceptance_offers = 3 and acceptance_accepts = 3 from public.drivers where id = d1));
 
   perform set_config('request.jwt.claims', json_build_object('sub', pax2, 'role', 'authenticated')::text, true);
   set local role authenticated;

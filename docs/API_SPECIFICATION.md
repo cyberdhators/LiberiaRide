@@ -53,7 +53,7 @@ Two surfaces:
 | `driver_mark_arriving`, `driver_mark_arrived`, `driver_record_stop`, `driver_complete_trip` | trip; arrival needs a fresh GPS fix within `trip.arrival_radius_m` |
 | `driver_start_trip(booking, pin?)` | returns `{ok, reason?, attempts_left?}`; web bookings need the passenger's 4-digit ride PIN (`booking_start_pins`, passenger-readable only); wrong tries are counted, 5 lock it (driver reassigns). Other channels need proximity to the pickup |
 | `driver_confirm_cash_collected(booking, amount_minor)` | reconciliation |
-| `driver_cancel_booking(booking, reason)` | re-dispatch, or no-show fee |
+| `driver_cancel_booking(booking, reason)` | re-dispatch to another driver (PIN tries reset), or `passenger_no_show` fee after the wait — needs a fresh GPS fix at the pickup |
 | `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |
 
 ### Operations (permission-checked, audited)
