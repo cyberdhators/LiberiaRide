@@ -90,6 +90,18 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
     };
   }, [reload, channel, status]);
 
+  // While searching: are any free drivers of this type within reach at all? (counts only)
+  const [reach, setReach] = useState<{ drivers_in_reach: number; radius_m: number; offers_made: number } | null>(null);
+  const searching = status === "SEARCHING_DRIVER" || status === "DRIVER_OFFERED";
+  useEffect(() => {
+    if (!searching) { setReach(null); return; }
+    const check = () => void createClient().rpc("booking_search_status", { p_booking_id: initial.id })
+      .then(({ data }) => { if ((data as { searching?: boolean } | null)?.searching) setReach(data as typeof reach); });
+    check();
+    const t = setInterval(check, 15_000);
+    return () => clearInterval(t);
+  }, [searching, initial.id, view.status]);
+
   // Chime once when the driver reaches the pickup.
   const [chimedArrival, setChimedArrival] = useState(initial.status === "DRIVER_ARRIVED");
   useEffect(() => {
@@ -217,6 +229,12 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
               <span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-500 opacity-60" /><span className="relative inline-flex h-3 w-3 rounded-full bg-brand-600" /></span>
               <p className="text-sm">{view.reserved ? "A driver is reviewing your request…" : "Looking for the nearest driver…"}</p>
             </div>
+            {reach && reach.drivers_in_reach === 0 && status === "SEARCHING_DRIVER" && (
+              <Alert tone="warn" title={reach.offers_made > 0 ? "No other drivers are free nearby" : "No drivers near your pickup yet"}>
+                We keep looking until the search ends{view.search_expires_at ? ` at ${new Date(view.search_expires_at).toLocaleTimeString("en-LR", { hour: "2-digit", minute: "2-digit" })}` : ""}.
+                You can also cancel now for free and try another ride type, or schedule for later.
+              </Alert>
+            )}
             {view.bidding_enabled && (
               <div>
                 <p className="text-sm font-medium">Driver offers {view.passenger_offer_minor !== null && <span className="text-muted">(you offered {money(view.passenger_offer_minor, view.currency)})</span>}</p>
