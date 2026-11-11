@@ -1,7 +1,7 @@
 -- =====================================================================
 -- LiberiaRide · 0033 · Book a ride for someone else
 --
--- The rider's name and phone live in booking_riders (passenger-readable only),
+-- The rider's name and phone live in booking_riders (readable by the passenger and staff),
 -- NOT on bookings — the assigned driver can read the bookings row forever.
 -- The driver sees the rider through get_booking_view, with the phone only
 -- while the ride is active (same rule as the passenger's own phone).

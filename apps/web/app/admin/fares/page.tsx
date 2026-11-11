@@ -63,7 +63,7 @@ export default async function FaresPage() {
               return (
                 <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                   <span>
-                    <strong>{coupons.map((c) => c.code).join(", ")}</strong> · {p.name} ·{" "}
+                    <strong>{coupons.length > 3 ? `${coupons.length} personal codes` : coupons.map((c) => c.code).join(", ")}</strong> · {p.name} ·{" "}
                     {p.discount_type === "percent" ? `${p.discount_value / 100}%` : money(p.discount_value, p.currency ?? "USD")}
                     <span className="text-muted block text-xs">
                       used {coupons.reduce((s, c) => s + c.redeemed_count, 0)}{p.usage_limit ? `/${p.usage_limit}` : ""} · until {p.ends_at ? formatDateTime(p.ends_at) : "no end"}
