@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Briefcase, Crosshair, History, Home, Link2, MapPin, Search, Star, X } from "lucide-react";
 import type { ResolvedLocation } from "@liberia-ride/geospatial";
@@ -12,22 +12,58 @@ interface Props {
   title: string;
   savedPlaces: SavedPlace[];
   onPick: (p: Place) => void;
-  onUseGps?: () => void;
+  /** Resolves to an error message, or null once the pickup is set. */
+  onUseGps?: () => Promise<string | null>;
+  /** Suggestions nearest this point come first. */
+  near?: { lat: number; lng: number } | null;
   onChooseOnMap?: () => void;
   onClose: () => void;
 }
 
+interface Suggestion { label: string; subtitle: string | null; lat: number; lng: number; source: string; qlsRef: string | null }
+
 /**
- * Search runs on SUBMIT, not on every keystroke: each QLS lookup costs a credit
- * (docs/QLS_INTEGRATION.md §2). Local landmarks and saved/recent places are free.
+ * Suggestions appear AS YOU TYPE from our own landmark list (free). The paid location
+ * service is only asked when the passenger presses Search (each lookup costs a credit,
+ * docs/QLS_INTEGRATION.md §2) — e.g. for a street address that is not in the list.
  */
-export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseOnMap, onClose }: Props) {
+export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseOnMap, onClose, near }: Props) {
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [results, setResults] = useState<ResolvedLocation[] | null>(null);
   const isPing = /quantumloc\.io\/p\//i.test(q);
+  const [suggestions, setSuggestions] = useState<Suggestion[] | null>(null);
+  const [locating, setLocating] = useState(false);
+  const latest = useRef("");
+
+  // Debounced type-ahead (250 ms after the last keystroke, from 2 characters).
+  useEffect(() => {
+    const text = q.trim();
+    latest.current = text;
+    if (text.length < 2 || isPing) { setSuggestions(null); return; }
+    const t = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/geo/suggest", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ q: text, lat: near?.lat, lng: near?.lng }),
+        });
+        const body = await res.json();
+        if (latest.current === text) setSuggestions(res.ok ? body.results : []);
+      } catch { /* offline: the Search button still explains */ }
+    }, 250);
+    return () => clearTimeout(t);
+  }, [q, isPing, near?.lat, near?.lng]);
+
+  async function useGps() {
+    if (!onUseGps) return;
+    setLocating(true);
+    setError(null);
+    const err = await onUseGps();
+    setLocating(false);
+    if (err) setError(err);
+  }
 
   const localMatches = q.trim().length >= 2
     ? savedPlaces.filter((p) => (p.label + " " + p.address_text).toLowerCase().includes(q.trim().toLowerCase())).slice(0, 4)
@@ -82,18 +118,18 @@ export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseO
       </div>
 
       <form onSubmit={search} className="flex gap-2 p-3">
-        <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Landmark, “street, city” or Ping link"
-          aria-label="Search location" enterKeyHint="search" />
+        <Input autoFocus value={q} onChange={(e) => { setQ(e.target.value); setResults(null); setError(null); }}
+          placeholder="Search a place, street or address" aria-label="Search location" enterKeyHint="search" autoComplete="off" />
         <Button type="submit" size="icon" loading={busy} aria-label="Search">{!busy && <Search className="h-5 w-5" />}</Button>
       </form>
       <p className="text-muted -mt-1 px-4 text-xs">
-        Tip: addresses need a comma — e.g. “1848 Capitol Hill, Monrovia”. Landmarks work too.
+        Not in the list? Press search — for an address use a comma, e.g. “1848 Capitol Hill, Monrovia”.
       </p>
 
       <div className="flex-1 overflow-y-auto p-3">
         <div className="grid grid-cols-2 gap-2">
           {onUseGps && (
-            <Button variant="secondary" onClick={onUseGps}><Crosshair className="h-4 w-4" /> My location</Button>
+            <Button variant="secondary" onClick={useGps} loading={locating}>{!locating && <Crosshair className="h-4 w-4" />} My location</Button>
           )}
           {onChooseOnMap && (
             <Button variant="secondary" onClick={onChooseOnMap} className={onUseGps ? "" : "col-span-2"}>
@@ -110,10 +146,24 @@ export function LocationSearch({ title, savedPlaces, onPick, onUseGps, onChooseO
           <Section title="Results">
             {results.map((r, i) => (
               <Row key={`${r.qlsRef ?? ""}-${i}`} icon={r.source === "qls_ping" ? <Link2 className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
-                title={r.label} subtitle={r.qlsRef ? `QLS ${r.qlsRef}` : r.source === "alias" ? "Local landmark" : undefined}
+                title={r.label} subtitle={r.source === "alias" ? "Landmark" : undefined}
                 onClick={() => pickResolved(r)} />
             ))}
           </Section>
+        )}
+
+        {!results && suggestions && suggestions.length > 0 && (
+          <Section title="Suggestions">
+            {suggestions.map((s, i) => (
+              <Row key={`${s.label}-${i}`} icon={<MapPin className="h-4 w-4" />} title={s.label} subtitle={s.subtitle ?? undefined}
+                onClick={() => onPick({ lat: s.lat, lng: s.lng, address: s.subtitle ? `${s.label}, ${s.subtitle.split(" · ").at(-1)}` : s.label,
+                  qlsRef: s.qlsRef, source: s.source })} />
+            ))}
+            <li className="text-muted px-1 pt-2 text-[11px]">Map data © OpenStreetMap contributors</li>
+          </Section>
+        )}
+        {!results && suggestions && suggestions.length === 0 && q.trim().length >= 2 && !busy && (
+          <p className="text-muted mt-4 px-1 text-sm">No suggestions — press <Search className="inline h-3.5 w-3.5" /> to search all of Liberia, or choose on the map.</p>
         )}
 
         {localMatches.length > 0 && (

@@ -16,9 +16,20 @@ export type GeoPermission = "unknown" | "prompt" | "granted" | "denied" | "unsup
 export function getCurrentFix(timeoutMs = 10_000): Promise<Fix> {
   return new Promise((resolve, reject) => {
     if (!("geolocation" in navigator)) return reject(new Error("Location is not supported on this device."));
+    if (!window.isSecureContext) {
+      return reject(new Error("Your phone only shares location with secure (https) sites. Search for your pickup or choose it on the map."));
+    }
     navigator.geolocation.getCurrentPosition(
       (p) => resolve(toFix(p)),
-      (e) => reject(new Error(geoErrorMessage(e))),
+      (e) => {
+        if (e.code === e.PERMISSION_DENIED) return reject(new Error(geoErrorMessage(e)));
+        // GPS slow or unavailable (indoors): accept a quicker network-based position instead.
+        navigator.geolocation.getCurrentPosition(
+          (p) => resolve(toFix(p)),
+          (e2) => reject(new Error(geoErrorMessage(e2))),
+          { enableHighAccuracy: false, timeout: timeoutMs, maximumAge: 60_000 },
+        );
+      },
       { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 15_000 },
     );
   });

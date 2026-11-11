@@ -91,13 +91,13 @@ export function AccountForms({ profile, contacts, places, isDriver }: {
     if (error) return setPlaceErr(userMessage(error));
     router.refresh();
   }
-  async function placeFromGps() {
+  async function placeFromGps(): Promise<string | null> {
     try {
       const fix = await getCurrentFix();
       await savePlace(await reverseLabel(fix.lat, fix.lng));
+      return null;
     } catch (e) {
-      setPlaceLabel(null);
-      setPlaceErr((e as Error).message);
+      return (e as Error).message;   // shown inside the search screen
     }
   }
 

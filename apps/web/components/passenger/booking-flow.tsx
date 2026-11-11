@@ -105,7 +105,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
     if (name) apply({ ...base, address: name, source: "map_label" });
   }, []);
 
-  const locateMe = useCallback(async () => {
+  const locateMe = useCallback(async (): Promise<string | null> => {
     setLocating(true);
     setGpsError(null);
     try {
@@ -114,8 +114,10 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
       await describe(fix.lat, fix.lng, (p) => setPickup((cur) =>
         // Ignore a late label if the passenger has already moved the pickup elsewhere.
         cur && p.source === "map_label" && (cur.lat !== p.lat || cur.lng !== p.lng) ? cur : p), "Your current location");
+      return null;
     } catch (e) {
       setGpsError((e as Error).message);
+      return (e as Error).message;
     } finally {
       setLocating(false);
     }
@@ -313,7 +315,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
       )}
 
       {pickup && !mapPicking && (
-        <button onClick={locateMe} aria-label="Use my current location as pickup" style={{ bottom: sheetH + 12 }}
+        <button onClick={() => void locateMe()} aria-label="Use my current location as pickup" style={{ bottom: sheetH + 12 }}
           className="surface absolute right-3 z-10 grid h-11 w-11 place-items-center rounded-full shadow-lg">
           {locating ? <Spinner className="h-5 w-5" /> : <LocateFixed className="h-5 w-5 text-brand-600" />}
         </button>
@@ -523,6 +525,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
         <LocationSearch
           title={fieldTitle(searching)}
           savedPlaces={savedPlaces}
+          near={pickup ?? dropoff}
           onUseGps={searching === "pickup" ? locateMe : undefined}
           onChooseOnMap={() => { setMapPicking(searching); setSearching(null); }}
           onClose={() => setSearching(null)}
