@@ -3,7 +3,7 @@
 //   Nothing else is cached: ride data must always come fresh from the server.
 // - Web Push: pushes arrive EMPTY; we fetch the text from /api/push/latest with the
 //   user's session cookie and show it. Ride offers stay on screen and vibrate.
-const CACHE = "lr-shell-v1";
+const CACHE = "lr-shell-v2"; // bump whenever /offline changes, so installed workers re-cache it
 const OFFLINE_URL = "/offline";
 
 self.addEventListener("install", (event) => {
