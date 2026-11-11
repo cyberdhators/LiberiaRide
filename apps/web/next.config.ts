@@ -10,6 +10,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // E2E builds go to a separate folder (NEXT_DIST_DIR=.next-e2e) so a running local server is never disturbed.
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   transpilePackages: ["@liberia-ride/shared", "@liberia-ride/geospatial"],
   poweredByHeader: false,
   async headers() {

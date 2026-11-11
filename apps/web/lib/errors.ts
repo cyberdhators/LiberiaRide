@@ -53,6 +53,10 @@ const KNOWN_SAFE_PREFIXES = [
   "only a new booking can be scheduled",
   "enter the rider",
   "the rider can only be changed",
+  "multiplier must be between",
+  "pick at least one day",
+  "start and end times must differ",
+  "unknown area",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

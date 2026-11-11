@@ -186,7 +186,7 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
           </div>
           <div className="text-right">
             <p className="font-bold tabular-nums">{money(fare, view.currency)}</p>
-            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Upfront price"}{view.final_fare_minor === null && view.outstanding_fee_minor > 0 && " + unpaid fee"}</p>
+            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Upfront price"}{view.final_fare_minor === null && view.outstanding_fee_minor > 0 && " + unpaid fee"}{view.surge_multiplier > 1 && ` · busy ×${Number(view.surge_multiplier).toFixed(2)}`}</p>
           </div>
         </div>
         {channel === "offline" && !isTerminal(status) && (
@@ -376,6 +376,7 @@ function Receipt({ view, alreadyRated, onDone }: { view: BookingView; alreadyRat
           {view.discount_minor > 0 && <div className="flex justify-between"><dt className="text-muted">Promotion</dt><dd>−{money(view.discount_minor, view.currency)}</dd></div>}
           <div className="flex justify-between border-t border-line pt-1 font-bold"><dt>Total</dt><dd className="tabular-nums">{money(view.final_fare_minor, view.currency)}</dd></div>
         </dl>
+        {view.surge_multiplier > 1 && <p className="text-muted mt-2 text-xs">Includes busy-hour pricing ×{Number(view.surge_multiplier).toFixed(2)}, shown when you booked.</p>}
         <p className="text-muted mt-2 text-xs">{formatDateTime(view.started_at)} → {formatDateTime(view.completed_at)} · Trip {view.code}</p>
       </Card>
       {!rated ? (

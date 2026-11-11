@@ -27,6 +27,7 @@ type FieldId = "pickup" | "dropoff" | `stop-${number}`;
 interface Estimate {
   category: string; estimateId?: string; currency?: string; totalMinor?: string; subtotalMinor?: string;
   discountMinor?: string; distanceM?: number; durationS?: number; routeSource?: string; expiresAt?: string; error?: string;
+  surgeMultiplier?: number;
 }
 
 const PAYMENT_LABEL: Record<PaymentMethod, string> = { cash: "Cash", orange_money: "Orange Money", mtn_momo: "MTN MoMo" };
@@ -388,6 +389,11 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
               </div>
             </div>
             {estimateNotice && <Alert tone="info" className="mb-2">{estimateNotice}</Alert>}
+            {(chosen?.surgeMultiplier ?? 1) > 1 && (
+              <Alert tone="warn" className="mb-2" title={`Busy hours: prices ×${chosen!.surgeMultiplier!.toFixed(2)}`}>
+                More people are riding right now. The price shown already includes it and won&apos;t change — or schedule for later.
+              </Alert>
+            )}
 
             <ul className={cn("space-y-2", estimating && "opacity-60")} role="radiogroup" aria-label="Ride option">
               {categories.map((c) => {

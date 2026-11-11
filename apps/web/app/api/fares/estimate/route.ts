@@ -95,6 +95,7 @@ export async function POST(request: Request) {
         durationS: est.duration_s as number,
         routeSource: est.route_source as string,
         expiresAt: est.expires_at as string,
+        surgeMultiplier: Number(est.surge_multiplier ?? 1),
         breakdown: est.breakdown,
       };
     }),

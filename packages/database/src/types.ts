@@ -1698,6 +1698,7 @@ export type Database = {
           route_steps: Json | null
           stops: Json
           subtotal_minor: number
+          surge_multiplier: number
           total_minor: number
         }
         Insert: {
@@ -1724,6 +1725,7 @@ export type Database = {
           route_steps?: Json | null
           stops?: Json
           subtotal_minor: number
+          surge_multiplier?: number
           total_minor: number
         }
         Update: {
@@ -1750,6 +1752,7 @@ export type Database = {
           route_steps?: Json | null
           stops?: Json
           subtotal_minor?: number
+          surge_multiplier?: number
           total_minor?: number
         }
         Relationships: [
@@ -2990,6 +2993,63 @@ export type Database = {
           },
         ]
       }
+      surge_windows: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          days: number[]
+          end_local: string
+          geofence_id: string | null
+          id: string
+          is_active: boolean
+          label: string
+          multiplier: number
+          start_local: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          days: number[]
+          end_local: string
+          geofence_id?: string | null
+          id?: string
+          is_active?: boolean
+          label: string
+          multiplier: number
+          start_local: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          days?: number[]
+          end_local?: string
+          geofence_id?: string | null
+          id?: string
+          is_active?: boolean
+          label?: string
+          multiplier?: number
+          start_local?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "surge_windows_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "surge_windows_geofence_id_fkey"
+            columns: ["geofence_id"]
+            isOneToOne: false
+            referencedRelation: "geofences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trip_locations: {
         Row: {
           accuracy_m: number | null
@@ -3441,6 +3501,45 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      _apply_surge: {
+        Args: {
+          p_mult: number
+          p_rule: Database["public"]["Tables"]["fare_rules"]["Row"]
+        }
+        Returns: {
+          base_fare_minor: number
+          bid_max_pct: number
+          bid_min_pct: number
+          bidding_enabled: boolean
+          booking_fee_minor: number
+          cancellation_fee_minor: number
+          cancellation_grace_seconds: number
+          category_id: string
+          commission_bps: number
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          geofence_id: string | null
+          id: string
+          is_active: boolean
+          minimum_fare_minor: number
+          per_km_minor: number
+          per_minute_minor: number
+          per_stop_minor: number
+          rounding_increment_minor: number
+          updated_at: string
+          valid_from: string
+          valid_to: string | null
+          waiting_free_minutes: number
+          waiting_per_minute_minor: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "fare_rules"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       _assign_driver: {
         Args: {
           p_actor_role: string
@@ -3700,6 +3799,7 @@ export type Database = {
           route_steps: Json | null
           stops: Json
           subtotal_minor: number
+          surge_multiplier: number
           total_minor: number
         }
         SetofOptions: {
@@ -4536,6 +4636,37 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_upsert_surge_window: {
+        Args: {
+          p_active: boolean
+          p_days: number[]
+          p_end: string
+          p_geofence_code: string
+          p_id: string
+          p_label: string
+          p_multiplier: number
+          p_start: string
+        }
+        Returns: {
+          created_at: string
+          created_by: string | null
+          days: number[]
+          end_local: string
+          geofence_id: string | null
+          id: string
+          is_active: boolean
+          label: string
+          multiplier: number
+          start_local: string
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "surge_windows"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_waive_fee: {
         Args: { p_payment_id: string; p_reason: string }
         Returns: {
@@ -4791,6 +4922,7 @@ export type Database = {
           route_steps: Json | null
           stops: Json
           subtotal_minor: number
+          surge_multiplier: number
           total_minor: number
         }
         SetofOptions: {
@@ -4836,6 +4968,7 @@ export type Database = {
           route_steps: Json | null
           stops: Json
           subtotal_minor: number
+          surge_multiplier: number
           total_minor: number
         }
         SetofOptions: {
@@ -4889,6 +5022,7 @@ export type Database = {
           route_steps: Json | null
           stops: Json
           subtotal_minor: number
+          surge_multiplier: number
           total_minor: number
         }
         SetofOptions: {
@@ -4897,6 +5031,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      current_surge: {
+        Args: { p_at: string; p_pickup: unknown }
+        Returns: number
       }
       dispatch_booking: { Args: { p_booking_id: string }; Returns: number }
       driver_balance: {

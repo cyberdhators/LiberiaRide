@@ -4,18 +4,21 @@ import { Alert, Badge, Card, CardTitle } from "@/components/ui";
 import { PageHeader, Table, Td } from "@/components/admin/table";
 import { RpcAction } from "@/components/admin/rpc-action";
 import { FareRuleEditor, PromotionForm, ConfigEditor, AliasForm } from "@/components/admin/fare-forms";
+import { SurgePanel, type SurgeWindow } from "@/components/admin/surge-forms";
 
 export const metadata = { title: "Fares & configuration" };
 export const dynamic = "force-dynamic";
 
 export default async function FaresPage() {
   const supabase = await createClient();
-  const [{ data: rules }, { data: categories }, { data: promos }, { data: config }, { data: aliases }] = await Promise.all([
+  const [{ data: rules }, { data: categories }, { data: promos }, { data: config }, { data: aliases }, { data: surges }, { data: zones }] = await Promise.all([
     supabase.from("fare_rules").select("*, vehicle_categories(code, name)").eq("is_active", true).order("currency"),
     supabase.from("vehicle_categories").select("id, code, name, is_active").order("sort_order"),
     supabase.from("promotions").select("id, name, discount_type, discount_value, currency, max_discount_minor, starts_at, ends_at, is_active, usage_limit, coupons(code, redeemed_count)").order("created_at", { ascending: false }).limit(50),
     supabase.from("configuration_settings").select("key, value, description, updated_at").order("key"),
     supabase.from("address_aliases").select("id, alias, address_text, qls_code, is_verified").order("alias").limit(200),
+    supabase.from("surge_windows").select("id, label, multiplier, days, start_local, end_local, is_active, geofences(code, name)").order("created_at"),
+    supabase.from("geofences").select("code, name").eq("is_active", true).order("name"),
   ]);
 
   return (
@@ -45,6 +48,11 @@ export default async function FaresPage() {
       </Table>
       <p className="text-muted mt-2 text-xs">Need a rule for a new category or currency? Use the editor on any row and change category/currency.</p>
       <div className="mt-3"><FareRuleEditor rule={null} categoryCode={categories?.[0]?.code ?? "car"} categories={categories ?? []} /></div>
+
+      <Card className="mt-8">
+        <CardTitle>Busy-hour pricing</CardTitle>
+        <SurgePanel windows={(surges ?? []) as unknown as SurgeWindow[]} zones={zones ?? []} />
+      </Card>
 
       <div className="mt-8 grid gap-4 lg:grid-cols-2">
         <Card>
