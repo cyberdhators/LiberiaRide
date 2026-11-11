@@ -58,12 +58,19 @@ test("finance records a top-up that unblocks an indebted driver", async ({ brows
   await expect(row).toContainText("Owed US$10.00", { timeout: 15_000 });
   await expect(row).toContainText("in credit");
 
+  // Correct an over-credit: deduct US$5 with a reason.
+  await row.getByRole("button", { name: "Correct balance" }).click();
+  await row.getByLabel("Adjustment amount").fill("5");
+  await row.getByLabel("Reason").fill("Duplicate receipt entered");
+  await row.getByRole("button", { name: "Save" }).click();
+  await expect(row).toContainText("Owed US$5.00", { timeout: 15_000 });
+
   const drv = await browser.newPage({ viewport: { width: 400, height: 860 } });
   await signIn(drv, `e2e-owe-${tag}@liberiaride.test`, "/driver/earnings");
   await expect(drv.getByText("Balance with LiberiaRide")).toBeVisible();
-  await expect(drv.getByText(/LiberiaRide owes you/)).toContainText("US$10.00");
+  await expect(drv.getByText(/LiberiaRide owes you/)).toContainText("US$5.00");
   await expect(drv.getByText("Top-up")).toBeVisible();
 
   const { data: audit } = await admin.from("audit_logs").select("action").eq("actor_id", ids.admin);
-  expect(audit!.map((x) => x.action)).toContain("wallet.topup");
+  expect(audit!.map((x) => x.action)).toEqual(expect.arrayContaining(["wallet.topup", "wallet.adjust"]));
 });

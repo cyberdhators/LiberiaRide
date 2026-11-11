@@ -46,6 +46,7 @@ const KNOWN_SAFE_PREFIXES = [
   "that reference was already used",
   "invalid amount",
   "driver not found",
+  "only an unpaid fee can be waived",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

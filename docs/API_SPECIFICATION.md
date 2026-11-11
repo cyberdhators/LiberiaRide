@@ -64,6 +64,7 @@ Two surfaces:
 `admin_review_driver`, `admin_review_vehicle`, `admin_review_document`, `admin_set_user_suspension`,
 `admin_set_role`, `admin_assign_driver`, `admin_assignable_drivers`, `admin_cancel_booking`,
 `admin_driver_balances` (finance.view), `admin_record_driver_topup` (finance.manage; idempotent on reference),
+`admin_wallet_adjustment` (signed, reason required), `admin_waive_fee` (unpaid cancellation fees only),
 `admin_upsert_fare_rule`, `admin_create_promotion`, `admin_set_promotion_active`, `admin_set_config`,
 `admin_upsert_alias`, `admin_update_case`, `admin_reconcile_cash`, `admin_create_settlement`,
 `admin_mark_settlement_paid`, `admin_dashboard_stats`, `admin_live_map`,

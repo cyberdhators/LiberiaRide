@@ -7,7 +7,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 29 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 30 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -33,6 +33,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Commission debt limit: over-limit drivers can't go online and get no offers until a top-up is recorded | ✅ | `wallet.max_debt_minor_usd/lrd` (placeholders: US$25 / L$4,500) |
 | Top-ups recorded by finance (receipt reference, idempotent, audited); self-serve MoMo top-up when credentials arrive | 🟡 | |
 | Unpaid cancellation/no-show fees shown before booking and collected with the next fare; cancelled-on driver credited fee − commission | ✅ | migration 0029 |
+| Finance: waive a disputed fee (reason, audited, passenger notified); correct a driver balance up or down; fee commission counted as income | ✅ | migration 0030 |
 | Realtime (private broadcast channels) | ✅ | |
 | Audit log | ✅ | |
 
@@ -82,6 +83,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | SQL areas test (`supabase/tests/areas_test.sql`) | ✅ `FAILURES: []` |
 | SQL push & offline-track test (`supabase/tests/push_test.sql`) | ✅ `FAILURES: []` |
 | SQL wallet & fee carry-over test (`supabase/tests/wallet_test.sql`) | ✅ `FAILURES: []` (35 checks) |
+| SQL fee waiver & adjustment test (`supabase/tests/finance_ops_test.sql`) | ✅ `FAILURES: []` |
 | SQL trust & billing test (`supabase/tests/trust_test.sql`) | ✅ `FAILURES: []` (33 checks, incl. lockout → reassign → new driver starts) |
 | Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page, finance top-up unblocks a driver | ✅ 9/9 |
 

@@ -4467,6 +4467,63 @@ export type Database = {
         }
         Returns: Json
       }
+      admin_waive_fee: {
+        Args: { p_payment_id: string; p_reason: string }
+        Returns: {
+          amount_minor: number
+          booking_id: string
+          collected_by_driver_id: string | null
+          confirmed_at: string | null
+          created_at: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          failed_at: string | null
+          failure_reason: string | null
+          id: string
+          idempotency_key: string
+          initiated_at: string | null
+          method: Database["public"]["Enums"]["payment_method"]
+          payer_id: string
+          payer_msisdn: string | null
+          provider: string
+          provider_reference: string | null
+          status: Database["public"]["Enums"]["payment_status"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "payments"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_wallet_adjustment: {
+        Args: {
+          p_amount_minor: number
+          p_currency: Database["public"]["Enums"]["currency_code"]
+          p_driver_id: string
+          p_reason: string
+        }
+        Returns: {
+          amount_minor: number
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          driver_id: string
+          id: string
+          kind: string
+          method: string | null
+          note: string | null
+          reference: string
+          settlement_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "driver_wallet_entries"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       booking_transition_allowed: {
         Args: {
           p_from: Database["public"]["Enums"]["booking_status"]

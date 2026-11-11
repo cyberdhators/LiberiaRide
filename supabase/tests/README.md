@@ -19,6 +19,8 @@ and offline track upload validation.
 `wallet_test.sql` covers migration 0029: balance maths, debt limit (online + dispatch), no-show fee carried
 to the next fare and credited to the cancelled-on driver, finance-only idempotent top-ups, settlement =
 balance, and one push kick per transaction.
+`finance_ops_test.sql` covers migration 0030: fee waiver (finance only, reason, removed from an active
+ride, not carried), signed wallet adjustments, and fee commission recorded as platform income.
 
 Last run: 2026-11-10 against project ymohklpojfyrlptiwvjr — lifecycle and trust tests FAILURES: [] (see docs/CHECKLIST.md).
 

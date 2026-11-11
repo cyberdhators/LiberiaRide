@@ -3,24 +3,27 @@ import { formatDateTime, money } from "@/lib/utils";
 import { Alert, Badge } from "@/components/ui";
 import { PageHeader, Table, Td } from "@/components/admin/table";
 import { RpcAction } from "@/components/admin/rpc-action";
-import { TopupForm } from "@/components/admin/wallet-forms";
+import { AdjustForm, TopupForm } from "@/components/admin/wallet-forms";
 
 export const metadata = { title: "Finance" };
 export const dynamic = "force-dynamic";
 
 export default async function FinancePage() {
   const supabase = await createClient();
-  const [{ data: payments }, { data: recon }, { data: balances, error: balError }, { data: settlements }] = await Promise.all([
+  const [{ data: payments }, { data: recon }, { data: balances, error: balError }, { data: settlements }, { data: fees }] = await Promise.all([
     supabase.from("payments").select("id, booking_id, method, status, amount_minor, currency, provider_reference, created_at, bookings(code)").order("created_at", { ascending: false }).limit(100),
     supabase.from("cash_reconciliation").select("id, driver_id, booking_id, currency, expected_minor, collected_minor, variance_minor, status, created_at").in("status", ["pending", "variance"]).order("created_at").limit(100),
     supabase.rpc("admin_driver_balances"),
     supabase.from("driver_settlements").select("id, driver_id, currency, period_start, period_end, gross_minor, commission_minor, cash_collected_minor, net_payable_minor, status, payout_reference").order("created_at", { ascending: false }).limit(50),
+    supabase.from("payments").select("id, payer_id, booking_id, amount_minor, currency, created_at, bookings(code, cancel_reason)")
+      .like("idempotency_key", "cancel-fee:%").eq("status", "pending").order("created_at", { ascending: false }).limit(100),
   ]);
 
+  const feeRows = fees ?? [];
   type BalanceRow = { driver_id: string; name: string | null; phone: string | null; currency: string; balance_minor: number;
     limit_minor: number | null; over_limit: boolean; is_online: boolean };
   const rows = (balances ?? []) as BalanceRow[];
-  const driverIds = [...new Set((recon ?? []).map((r) => r.driver_id).concat((settlements ?? []).map((s) => s.driver_id)))];
+  const driverIds = [...new Set((recon ?? []).map((r) => r.driver_id).concat((settlements ?? []).map((s) => s.driver_id)).concat(feeRows.map((f) => f.payer_id)))];
   const { data: names } = driverIds.length ? await supabase.from("profiles").select("id, full_name").in("id", driverIds) : { data: [] as { id: string; full_name: string | null }[] };
   const nameOf = (id: string) => names?.find((n) => n.id === id)?.full_name ?? id.slice(0, 8);
 
@@ -49,7 +52,23 @@ export default async function FinancePage() {
                 <RpcAction fn="admin_create_settlement" args={{ p_driver_id: b.driver_id, p_currency: b.currency }} label="Create settlement" confirm="Create a settlement for everything unsettled for this driver in this currency?" />
               </div>
               <TopupForm driverId={b.driver_id} currency={b.currency} />
+              <AdjustForm driverId={b.driver_id} currency={b.currency} />
             </Td>
+          </tr>
+        ))}
+      </Table>
+
+      <h2 className="mb-2 mt-6 font-semibold">Unpaid cancellation fees</h2>
+      <p className="text-muted mb-2 text-xs">Added to the passenger&apos;s next fare in the same currency. Waive a fee that is disputed or was charged in error.</p>
+      <Table head={["Passenger", "Ride", "Fee", "Charged", ""]}>
+        {feeRows.map((f) => (
+          <tr key={f.id}>
+            <Td>{nameOf(f.payer_id)}</Td>
+            <Td>{(f.bookings as unknown as { code: string; cancel_reason: string | null } | null)?.code}
+              <span className="text-muted block text-xs">{(f.bookings as unknown as { cancel_reason: string | null } | null)?.cancel_reason?.replaceAll("_", " ")}</span></Td>
+            <Td>{money(f.amount_minor, f.currency)}</Td>
+            <Td className="text-muted">{formatDateTime(f.created_at)}</Td>
+            <Td><RpcAction fn="admin_waive_fee" args={{ p_payment_id: f.id }} prompt="Why is this fee being waived? (kept in the audit log)" promptArg="p_reason" label="Waive" variant="secondary" size="sm" /></Td>
           </tr>
         ))}
       </Table>
