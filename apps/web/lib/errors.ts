@@ -47,6 +47,12 @@ const KNOWN_SAFE_PREFIXES = [
   "invalid amount",
   "driver not found",
   "only an unpaid fee can be waived",
+  "pick a time at least",
+  "rides can be scheduled up to",
+  "you already have",
+  "only a new booking can be scheduled",
+  "enter the rider",
+  "the rider can only be changed",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

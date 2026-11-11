@@ -39,7 +39,7 @@ interface ActiveView {
   stops: { id: string; seq: number; kind: string; address: string; lat: number; lng: number; arrived_at: string | null; departed_at: string | null }[];
   estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null; outstanding_fee_minor: number;
   payment_method: string; payment_status: string; route_polyline: string | null;
-  passenger: { name: string; rating: number | null; phone: string | null } | null;
+  passenger: { name: string; rating: number | null; phone: string | null; booked_by: string | null } | null;
   arrived_at: string | null;
 }
 
@@ -343,7 +343,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
               <Card className="flex items-center gap-3 p-3">
                 <div className="flex-1">
                   <p className="font-semibold">{active.passenger.name} {active.passenger.rating && <span className="text-muted text-xs">★ {active.passenger.rating}</span>}</p>
-                  <p className="text-muted text-xs">{active.payment_method.replace("_", " ")}</p>
+                  <p className="text-muted text-xs">{active.payment_method.replace("_", " ")}{active.passenger.booked_by && ` · booked by ${active.passenger.booked_by}`}</p>
                 </div>
                 {active.passenger.phone && <a href={`tel:${active.passenger.phone}`} className="surface-muted grid h-11 w-11 place-items-center rounded-xl" aria-label="Call passenger"><Phone className="h-4 w-4" /></a>}
                 {conversationId && <Button variant="secondary" size="sm" onClick={() => setShowChat((s) => !s)}>Chat</Button>}

@@ -1,8 +1,8 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Banknote, Car, Circle, LocateFixed, MapPin, Plus, Smartphone, Square, Tag, Users, X } from "lucide-react";
-import { bidWindow, newIdempotencyKey, parseMajor } from "@liberia-ride/shared";
+import { ArrowLeft, Banknote, CalendarClock, Car, Circle, LocateFixed, MapPin, Plus, Smartphone, Square, Tag, UserRound, Users, X } from "lucide-react";
+import { bidWindow, newIdempotencyKey, normalizePhone, parseMajor } from "@liberia-ride/shared";
 import { formatDistance, formatDuration } from "@liberia-ride/geospatial";
 import { createClient } from "@/lib/supabase/client";
 import { userMessage } from "@/lib/errors";
@@ -63,6 +63,15 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   const [error, setError] = useState<string | null>(null);
   const [showOffer, setShowOffer] = useState(false);
   const [showCoupon, setShowCoupon] = useState(false);
+  // "Later": a scheduled ride (price locked now). "For someone else": rider name + phone.
+  const [when, setWhen] = useState<"now" | "later">("now");
+  const [laterAt, setLaterAt] = useState("");
+  const [forOther, setForOther] = useState(false);
+  const [rider, setRider] = useState({ name: "", phone: "" });
+  const [upcoming, setUpcoming] = useState<{ id: string; scheduled_for: string; dropoff_address: string }[]>([]);
+  useEffect(() => {
+    void createClient().rpc("my_scheduled_rides").then(({ data }) => setUpcoming((data ?? []) as typeof upcoming));
+  }, []);
   // One key per booking intent: retries of the same tap reuse it, so no duplicates.
   const idemKey = useRef<string | null>(null);
   const mapApi = useRef<MapApi | null>(null);
@@ -200,6 +209,19 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
         return;
       }
     }
+    let scheduledFor: string | null = null;
+    if (when === "later") {
+      const t = laterAt ? new Date(laterAt) : null;
+      if (!t || Number.isNaN(t.getTime())) { setError("Choose the pickup date and time."); return; }
+      scheduledFor = t.toISOString();
+    }
+    let riderPhone: string | null = null;
+    if (forOther) {
+      riderPhone = normalizePhone(rider.phone);
+      if (rider.name.trim().length < 2) { setError("Enter the name of the person riding."); return; }
+      if (!riderPhone) { setError("Enter the rider's phone number, e.g. 077 012 3456."); return; }
+    }
+    const twoStep = Boolean(scheduledFor || forOther);
     idemKey.current ??= newIdempotencyKey();
     setBooking(true);
     const supabase = createClient();
@@ -207,10 +229,31 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
       p_estimate_id: chosen.estimateId,
       p_payment_method: payment,
       p_idempotency_key: idemKey.current,
-      p_confirm: true,
+      p_confirm: !twoStep,
       p_passenger_offer_minor: offerMinor,
       p_note: null,
     });
+    if (!rpcError && twoStep) {
+      // Rider and/or time are set before a driver is searched for, then the booking is released.
+      const id = (data as { id: string }).id;
+      const steps: PromiseLike<{ error: { message?: string; code?: string } | null }>[] = [];
+      if (forOther) steps.push(supabase.rpc("set_booking_rider", { p_booking_id: id, p_name: rider.name.trim(), p_phone: riderPhone }));
+      for (const step of steps) {
+        const { error } = await step;
+        if (error) { setBooking(false); setError(userMessage(error)); return; }
+      }
+      const { error: finalError } = scheduledFor
+        ? await supabase.rpc("schedule_booking", { p_booking_id: id, p_at: scheduledFor })
+        : await supabase.rpc("confirm_booking", { p_booking_id: id });
+      if (finalError) {
+        setBooking(false);
+        setError(userMessage(finalError));
+        await supabase.rpc("passenger_cancel_booking", { p_booking_id: id, p_reason: "booking_not_completed" });
+        idemKey.current = null;
+        void priceTrip();
+        return;
+      }
+    }
     if (rpcError) {
       setBooking(false);
       if (/expired/i.test(rpcError.message)) {
@@ -309,6 +352,13 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             </div>
 
             {gpsError && !pickup && <Alert tone="warn" className="mt-3">{gpsError} You can search or tap “Choose on map”.</Alert>}
+            {upcoming.length > 0 && (
+              <a href="/passenger/trips" className="mt-3 flex items-center gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+                <CalendarClock className="h-4 w-4 text-brand-600" aria-hidden />
+                <span className="flex-1">Upcoming: {new Date(upcoming[0]!.scheduled_for).toLocaleString("en-LR", { weekday: "short", hour: "2-digit", minute: "2-digit" })} → {upcoming[0]!.dropoff_address}</span>
+                {upcoming.length > 1 && <span className="text-muted text-xs">+{upcoming.length - 1}</span>}
+              </a>
+            )}
 
             {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
             <Button size="lg" className="mt-4 w-full" disabled={!readyToPrice} loading={estimating} onClick={priceTrip}>
@@ -411,6 +461,35 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
               <p className="text-muted mt-2 text-xs">Mobile money is collected after the trip. If it can&apos;t be completed, you can pay your driver in cash.</p>
             )}
 
+            <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="When">
+              {(["now", "later"] as const).map((w) => (
+                <button key={w} role="radio" aria-checked={when === w} onClick={() => setWhen(w)}
+                  className={cn("flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-medium",
+                    when === w ? "border-brand-500 bg-brand-50" : "border-line")}>
+                  {w === "now" ? <Car className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}{w === "now" ? "Ride now" : "Schedule"}
+                </button>
+              ))}
+            </div>
+            {when === "later" && (
+              <div className="mt-2">
+                <label htmlFor="later-at" className="text-sm font-medium">Pickup time</label>
+                <Input id="later-at" type="datetime-local" className="mt-1" value={laterAt} onChange={(e) => setLaterAt(e.target.value)}
+                  min={localInput(Date.now() + 30 * 60_000)} max={localInput(Date.now() + 7 * 86_400_000)} />
+                <p className="text-muted mt-1 text-xs">From 30 minutes to 7 days ahead. The price above is locked; we start finding your driver 15 minutes before.</p>
+              </div>
+            )}
+            <label className="mt-3 flex items-center gap-2 text-sm">
+              <input type="checkbox" checked={forOther} onChange={(e) => setForOther(e.target.checked)} />
+              <UserRound className="h-4 w-4 text-brand-600" aria-hidden /> Booking for someone else
+            </label>
+            {forOther && (
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <Input aria-label="Rider's name" placeholder="Rider's name" value={rider.name} onChange={(e) => setRider({ ...rider, name: e.target.value })} />
+                <Input aria-label="Rider's phone" placeholder="Phone, e.g. 077…" inputMode="tel" value={rider.phone} onChange={(e) => setRider({ ...rider, phone: e.target.value })} />
+                <p className="text-muted col-span-2 text-xs">The driver will call this number. After booking, send them the ride PIN and trip link from the trip screen.</p>
+              </div>
+            )}
+
             {feeDue > 0 && (
               <Alert tone="warn" className="mt-3">An unpaid cancellation fee of {money(feeDue, chosen?.currency ?? currency)} from an earlier ride will be added to this trip.</Alert>
             )}
@@ -418,7 +497,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             {/* Stays visible while the options scroll. */}
             <div className="surface sticky -bottom-4 -mx-4 mt-3 px-4 pb-4 pt-2">
               <Button size="lg" className="w-full" disabled={!chosen} loading={booking} onClick={confirm}>
-                {offer.trim() && bidBounds ? "Send offer to drivers" : `Confirm ${categories.find((c) => c.code === selected)?.name ?? ""}`}
+                {offer.trim() && bidBounds ? "Send offer to drivers" : when === "later" ? "Schedule ride" : `Confirm ${categories.find((c) => c.code === selected)?.name ?? ""}`}
                 {chosen?.totalMinor && !offer.trim() && <span className="opacity-80">· {money(Number(chosen.totalMinor) + feeDue, chosen.currency ?? currency)}</span>}
               </Button>
             </div>
@@ -454,4 +533,10 @@ function LocationButton({ icon, value, placeholder, onClick, emphasis }: {
       <span className={cn("truncate text-[15px]", !value && "text-muted")}>{value ?? placeholder}</span>
     </button>
   );
+}
+
+/** `datetime-local` value (device time) for a timestamp. */
+function localInput(ms: number): string {
+  const d = new Date(ms - new Date(ms).getTimezoneOffset() * 60_000);
+  return d.toISOString().slice(0, 16);
 }

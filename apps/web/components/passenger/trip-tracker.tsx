@@ -22,7 +22,8 @@ export interface BookingView {
   id: string; code: string; status: BookingStatus; pickup: Pt; dropoff: Pt;
   stops: { id: string; seq: number; kind: string; address: string; lat: number; lng: number }[];
   currency: string; estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null;
-  discount_minor: number; outstanding_fee_minor: number; estimated_distance_m: number; estimated_duration_s: number;
+  discount_minor: number; outstanding_fee_minor: number; scheduled_for: string | null; surge_multiplier: number;
+  rider: { name: string; phone: string } | null; estimated_distance_m: number; estimated_duration_s: number;
   payment_method: string; payment_status: string; bidding_enabled: boolean; passenger_offer_minor: number | null;
   route_polyline: string | null; share_token: string | null; reserved: boolean; search_expires_at: string | null;
   driver: { id: string; name: string; rating: number | null; trips: number; phone: string | null;
@@ -99,13 +100,14 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
   }, [status, chimedArrival]);
 
   const showPin = status === "DRIVER_ASSIGNED" || status === "DRIVER_ARRIVING" || status === "DRIVER_ARRIVED";
+  const needPin = showPin || (Boolean(initial.rider) && !isTerminal(status) && status !== "IN_PROGRESS");
 
   // Ride PIN: readable by the passenger only (RLS); the driver needs it to start the trip.
   useEffect(() => {
-    if (!showPin || pin) return;
+    if (!needPin || pin) return;
     void createClient().from("booking_start_pins").select("pin").eq("booking_id", initial.id).maybeSingle()
       .then(({ data }) => setPin((data?.pin as string | undefined) ?? null));
-  }, [showPin, pin, initial.id]);
+  }, [needPin, pin, initial.id]);
   const loc = view.driver_location;
   const locFresh = loc ? isFresh(loc.received_at, FRESH_S, now) : false;
   const target = status === "IN_PROGRESS" ? view.dropoff : view.pickup;
@@ -153,7 +155,10 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
   async function share() {
     if (!view.share_token) return;
     const url = `${siteUrl || window.location.origin}/share/${encodeURIComponent(view.share_token)}`;
-    const text = `Track my LiberiaRide trip ${view.code}`;
+    // For someone else's ride the rider needs the PIN to start the trip (there is no SMS yet: use the share sheet).
+    const text = view.rider
+      ? `${view.rider.name.split(" ")[0]}, your LiberiaRide is booked${view.scheduled_for ? ` for ${new Date(view.scheduled_for).toLocaleString("en-LR", { weekday: "short", hour: "2-digit", minute: "2-digit" })}` : ""}. Ride PIN: ${pin ?? "see the app"} — give it to the driver once you are in the car. Track it here:`
+      : `Track my LiberiaRide trip ${view.code}`;
     if (navigator.share) await navigator.share({ title: "My trip", text, url }).catch(() => undefined);
     else { await navigator.clipboard.writeText(url); setError(null); alert("Trip link copied."); }
   }
@@ -188,6 +193,23 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
           <Alert tone="warn" className="mt-2">Live updates paused — reconnecting. <button className="underline" onClick={() => void reload()}>Refresh</button></Alert>
         )}
         {sosSent && <Alert tone="danger" className="mt-2" title="SOS sent to LiberiaRide operations">If you are in immediate danger call 911 (Liberia National Police).</Alert>}
+
+        {status === "SCHEDULED" && view.scheduled_for && (
+          <div className="mt-3 space-y-2">
+            <Alert tone="info" title={`Pickup ${new Date(view.scheduled_for).toLocaleString("en-LR", { weekday: "long", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}`}>
+              Your price is locked. We start finding your driver 15 minutes before and notify you.
+            </Alert>
+            {view.rider && (
+              <Button variant="secondary" className="w-full" onClick={share}><Share2 className="h-4 w-4" /> Send {view.rider.name.split(" ")[0]} the PIN and trip link</Button>
+            )}
+          </div>
+        )}
+        {view.rider && status !== "SCHEDULED" && !isTerminal(status) && (
+          <div className="mt-3 flex items-center justify-between gap-2 rounded-xl border border-line px-3 py-2 text-sm">
+            <span>Riding: <strong>{view.rider.name}</strong> <span className="text-muted">· {view.rider.phone}</span></span>
+            <Button size="sm" variant="secondary" onClick={share}>Send PIN</Button>
+          </div>
+        )}
 
         {(status === "SEARCHING_DRIVER" || status === "DRIVER_OFFERED") && (
           <div className="mt-3 space-y-3">
