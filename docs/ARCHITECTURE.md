@@ -103,6 +103,14 @@ records a top-up. A passenger's unpaid cancellation fees are snapshotted onto th
 (`outstanding_fee_minor`), shown before confirming, collected with that fare (cash expected includes it),
 and credited — minus commission — to the driver who was cancelled on.
 
+**Booking variants** — Scheduled rides use a `SCHEDULED` status (not an active ride) released to normal
+dispatch by a 30-second cron job 15 minutes before pickup; the price is fixed at booking. Rides for
+someone else keep the rider's contact in `booking_riders` (never on the driver-readable bookings row).
+Busy-hour windows scale the fare rule when a price is quoted; the multiplier is stored on the
+estimate/booking and reapplied at completion. Call-centre bookings (`channel = admin`) are created by
+`admin_create_booking_for` as the operator; only the caller's account lookup and pricing use the
+service role. Referrals reward both riders with one-ride coupons after the referred rider's first trip.
+
 ## Technology choices
 
 | Concern | Choice | Why |

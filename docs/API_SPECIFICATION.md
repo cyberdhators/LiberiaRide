@@ -57,6 +57,9 @@ Two surfaces:
 | `driver_upload_track(booking, points[])` | up to 300 buffered GPS fixes taken during an in-progress trip; same accuracy/plausibility rules as live updates; returns `{accepted, rejected}` |
 | `push_subscribe(endpoint, p256dh, auth, ua?)`, `push_unsubscribe(endpoint)`, `push_public_key()`, `push_take_recent()` | phone alerts (any signed-in user); endpoints limited to real push services |
 | `driver_wallet()` | own balance per currency, debt limit, `blocked`, recent entries |
+| `schedule_booking(booking, at)`, `my_scheduled_rides()` | schedule a priced, unconfirmed booking (create_booking with `p_confirm => false`) |
+| `set_booking_rider(booking, name, phone)` | ride for someone else; before a driver is found; phone in E.164 |
+| `apply_referral_code(code)`, `my_referral()` | referrals (code once, before the first completed trip) |
 | `my_outstanding_fees()` | passenger's unpaid cancellation fees per currency (added to the next fare) |
 | `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |
 
@@ -65,6 +68,7 @@ Two surfaces:
 `admin_set_role`, `admin_assign_driver`, `admin_assignable_drivers`, `admin_cancel_booking`,
 `admin_driver_balances` (finance.view), `admin_record_driver_topup` (finance.manage; idempotent on reference),
 `admin_wallet_adjustment` (signed, reason required), `admin_waive_fee` (unpaid cancellation fees only),
+`admin_upsert_surge_window` (fares.manage), `admin_create_booking_for` (bookings.create; via `/api/admin/phone-booking`),
 `admin_upsert_fare_rule`, `admin_create_promotion`, `admin_set_promotion_active`, `admin_set_config`,
 `admin_upsert_alias`, `admin_update_case`, `admin_reconcile_cash`, `admin_create_settlement`,
 `admin_mark_settlement_paid`, `admin_dashboard_stats`, `admin_live_map`,

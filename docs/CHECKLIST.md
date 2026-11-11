@@ -7,7 +7,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 30 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 36 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -34,6 +34,11 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Top-ups recorded by finance (receipt reference, idempotent, audited); self-serve MoMo top-up when credentials arrive | 🟡 | |
 | Unpaid cancellation/no-show fees shown before booking and collected with the next fare; cancelled-on driver credited fee − commission | ✅ | migration 0029 |
 | Finance: waive a disputed fee (reason, audited, passenger notified); correct a driver balance up or down; fee commission counted as income | ✅ | migration 0030 |
+| Scheduled rides: 30 min–7 days ahead, price locked, released to dispatch 15 min before; max 3 upcoming; free cancel | ✅ | migrations 0031–0032 |
+| Book for someone else: rider name + phone (passenger-only table), driver sees rider, share PIN + trip link (share sheet — no SMS provider yet) | ✅ | migration 0033 |
+| Busy-hour pricing: windows by day/time/zone, ×1.05–3.00, shown before booking, upfront price kept | ✅ | migration 0034 |
+| Referrals: personal code, friend's code once before first trip, 20% one-ride coupon for both, monthly cap | ✅ | migration 0035 |
+| Call-centre booking (`/admin/bookings/new`): account found/created by phone, QLS-priced, booked as the operator (audited), no PIN | ✅ | migration 0036 |
 | Realtime (private broadcast channels) | ✅ | |
 | Audit log | ✅ | |
 
@@ -75,7 +80,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 
 | Suite | Status |
 |---|---|
-| Unit (Vitest): 67 tests (incl. VAPID signing) | ✅ |
+| Unit (Vitest): 68 tests (incl. VAPID signing, scheduled state machine) | ✅ |
 | Real-DB integration (`RUN_DB_TESTS=1`) | ✅ |
 | SQL lifecycle/security test (`supabase/tests/lifecycle_test.sql`) | ✅ `FAILURES: []` |
 | SQL role-management test (`supabase/tests/roles_test.sql`) | ✅ `FAILURES: []` |
@@ -84,8 +89,9 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | SQL push & offline-track test (`supabase/tests/push_test.sql`) | ✅ `FAILURES: []` |
 | SQL wallet & fee carry-over test (`supabase/tests/wallet_test.sql`) | ✅ `FAILURES: []` (35 checks) |
 | SQL fee waiver & adjustment test (`supabase/tests/finance_ops_test.sql`) | ✅ `FAILURES: []` |
+| SQL group 4 tests (`scheduled_test`, `rider_test`, `surge_test`, `referral_test`, `phone_booking_test`) | ✅ `FAILURES: []` |
 | SQL trust & billing test (`supabase/tests/trust_test.sql`) | ✅ `FAILURES: []` (33 checks, incl. lockout → reassign → new driver starts) |
-| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page, finance top-up unblocks a driver | ✅ 9/9 |
+| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page, finance top-up/correction, schedule for someone else, busy hours, referral code, call-centre booking | ✅ 13/13 |
 
 ## Quality, later
 

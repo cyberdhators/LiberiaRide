@@ -21,6 +21,8 @@ to the next fare and credited to the cancelled-on driver, finance-only idempoten
 balance, and one push kick per transaction.
 `finance_ops_test.sql` covers migration 0030: fee waiver (finance only, reason, removed from an active
 ride, not carried), signed wallet adjustments, and fee commission recorded as platform income.
+Group 4: `scheduled_test.sql` (0031–0032), `rider_test.sql` (0033), `surge_test.sql` (0034),
+`referral_test.sql` (0035), `phone_booking_test.sql` (0036).
 
 Last run: 2026-11-10 against project ymohklpojfyrlptiwvjr — lifecycle and trust tests FAILURES: [] (see docs/CHECKLIST.md).
 

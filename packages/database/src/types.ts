@@ -4282,6 +4282,77 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      admin_create_booking_for: {
+        Args: {
+          p_estimate_id: string
+          p_idempotency_key: string
+          p_note?: string
+          p_passenger_id: string
+          p_payment_method: Database["public"]["Enums"]["payment_method"]
+          p_scheduled_for?: string
+        }
+        Returns: {
+          agreed_fare_minor: number | null
+          allocation_strategy: Database["public"]["Enums"]["allocation_strategy"]
+          arrived_at: string | null
+          assigned_at: string | null
+          bidding_enabled: boolean
+          cancel_reason: string | null
+          cancellation_fee_minor: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_role: string | null
+          category_id: string
+          channel: Database["public"]["Enums"]["booking_channel"]
+          code: string
+          completed_at: string | null
+          confirmed_at: string | null
+          coupon_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          discount_minor: number
+          dispatch_round: number
+          driver_id: string | null
+          dropoff: unknown
+          dropoff_address: string
+          dropoff_qls_ref: string | null
+          estimated_distance_m: number
+          estimated_duration_s: number
+          estimated_fare_minor: number
+          fare_estimate_id: string | null
+          fare_rule_id: string
+          final_fare_minor: number | null
+          id: string
+          idempotency_key: string
+          outstanding_fee_minor: number
+          passenger_id: string
+          passenger_note: string | null
+          passenger_offer_minor: number | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          pickup: unknown
+          pickup_address: string
+          pickup_qls_ref: string | null
+          reserved_driver_id: string | null
+          reserved_until: string | null
+          route_polyline: string | null
+          scheduled_for: string | null
+          search_expires_at: string | null
+          share_token: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
+          updated_at: string
+          vehicle_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       admin_create_fleet: {
         Args: { p_name: string; p_owner_id: string; p_phone?: string }
         Returns: {

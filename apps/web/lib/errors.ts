@@ -61,6 +61,7 @@ const KNOWN_SAFE_PREFIXES = [
   "you cannot use your own code",
   "you have already used a referral code",
   "referral codes are for new riders",
+  "use the passenger app to book for yourself",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {
