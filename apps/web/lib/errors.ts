@@ -57,6 +57,10 @@ const KNOWN_SAFE_PREFIXES = [
   "pick at least one day",
   "start and end times must differ",
   "unknown area",
+  "that referral code is not valid",
+  "you cannot use your own code",
+  "you have already used a referral code",
+  "referral codes are for new riders",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

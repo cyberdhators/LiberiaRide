@@ -2151,6 +2151,9 @@ export type Database = {
           id: string
           rating_avg: number | null
           rating_count: number
+          referral_code: string
+          referred_at: string | null
+          referred_by: string | null
           updated_at: string
         }
         Insert: {
@@ -2160,6 +2163,9 @@ export type Database = {
           id: string
           rating_avg?: number | null
           rating_count?: number
+          referral_code: string
+          referred_at?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Update: {
@@ -2169,6 +2175,9 @@ export type Database = {
           id?: string
           rating_avg?: number | null
           rating_count?: number
+          referral_code?: string
+          referred_at?: string | null
+          referred_by?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -2177,6 +2186,13 @@ export type Database = {
             columns: ["id"]
             isOneToOne: true
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "passengers_referred_by_fkey"
+            columns: ["referred_by"]
+            isOneToOne: false
+            referencedRelation: "passengers"
             referencedColumns: ["id"]
           },
         ]
@@ -2751,6 +2767,69 @@ export type Database = {
           topic?: string
         }
         Relationships: []
+      }
+      referral_rewards: {
+        Row: {
+          booking_id: string | null
+          created_at: string
+          referred_coupon_id: string | null
+          referred_id: string
+          referrer_coupon_id: string | null
+          referrer_id: string
+        }
+        Insert: {
+          booking_id?: string | null
+          created_at?: string
+          referred_coupon_id?: string | null
+          referred_id: string
+          referrer_coupon_id?: string | null
+          referrer_id: string
+        }
+        Update: {
+          booking_id?: string | null
+          created_at?: string
+          referred_coupon_id?: string | null
+          referred_id?: string
+          referrer_coupon_id?: string | null
+          referrer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referred_coupon_id_fkey"
+            columns: ["referred_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referred_id_fkey"
+            columns: ["referred_id"]
+            isOneToOne: true
+            referencedRelation: "passengers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_coupon_id_fkey"
+            columns: ["referrer_coupon_id"]
+            isOneToOne: false
+            referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_referrer_id_fkey"
+            columns: ["referrer_id"]
+            isOneToOne: false
+            referencedRelation: "passengers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       refunds: {
         Row: {
@@ -3911,6 +3990,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      _new_short_code: { Args: { p_len?: number }; Returns: string }
       _new_start_pin: { Args: never; Returns: string }
       _push_enqueue: {
         Args: {
@@ -4724,6 +4804,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      apply_referral_code: { Args: { p_code: string }; Returns: Json }
       booking_transition_allowed: {
         Args: {
           p_from: Database["public"]["Enums"]["booking_status"]
@@ -5499,6 +5580,7 @@ export type Database = {
       is_staff: { Args: never; Returns: boolean }
       make_point: { Args: { lat: number; lng: number }; Returns: unknown }
       my_outstanding_fees: { Args: never; Returns: Json }
+      my_referral: { Args: never; Returns: Json }
       my_saved_locations: {
         Args: never
         Returns: {

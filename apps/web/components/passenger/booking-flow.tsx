@@ -69,9 +69,12 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   const [laterAt, setLaterAt] = useState("");
   const [forOther, setForOther] = useState(false);
   const [rider, setRider] = useState({ name: "", phone: "" });
+  const [rewardCodes, setRewardCodes] = useState<string[]>([]);
   const [upcoming, setUpcoming] = useState<{ id: string; scheduled_for: string; dropoff_address: string }[]>([]);
   useEffect(() => {
     void createClient().rpc("my_scheduled_rides").then(({ data }) => setUpcoming((data ?? []) as typeof upcoming));
+    void createClient().rpc("my_referral").then(({ data }) =>
+      setRewardCodes(((data as { coupons?: { code: string; used: boolean }[] } | null)?.coupons ?? []).filter((c) => !c.used).map((c) => c.code)));
   }, []);
   // One key per booking intent: retries of the same tap reuse it, so no duplicates.
   const idemKey = useRef<string | null>(null);
@@ -429,6 +432,11 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
               {bidBounds && !showOffer && (
                 <button className="font-medium text-brand-600" onClick={() => setShowOffer(true)}>Offer your own price</button>
+              )}
+              {!showCoupon && !coupon && rewardCodes[0] && (
+                <button className="flex items-center gap-1 font-medium text-ok-500" onClick={() => { setCoupon(rewardCodes[0]!); setShowCoupon(true); }}>
+                  <Tag className="h-3.5 w-3.5" /> Use your reward {rewardCodes[0]}
+                </button>
               )}
               {!showCoupon && (
                 <button className="flex items-center gap-1 font-medium text-brand-600" onClick={() => setShowCoupon(true)}>

@@ -8,6 +8,7 @@ export function notificationHref(n: { kind: string; data: Record<string, unknown
   if (n.kind === "driver.fleet_removed") return "/driver/earnings";
   if (n.kind === "booking.assigned" || n.kind.startsWith("driver.")) return "/driver";
   if (n.kind.startsWith("fleet.")) return "/fleet";
+  if (n.kind.startsWith("referral.")) return "/passenger/account";
   if (bookingId) return `/passenger/trip/${bookingId}`;
   return null;
 }
