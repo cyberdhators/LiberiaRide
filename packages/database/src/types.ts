@@ -518,6 +518,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -569,6 +570,7 @@ export type Database = {
           final_fare_minor?: number | null
           id?: string
           idempotency_key: string
+          outstanding_fee_minor?: number
           passenger_id: string
           passenger_note?: string | null
           passenger_offer_minor?: number | null
@@ -620,6 +622,7 @@ export type Database = {
           final_fare_minor?: number | null
           id?: string
           idempotency_key?: string
+          outstanding_fee_minor?: number
           passenger_id?: string
           passenger_note?: string | null
           passenger_offer_minor?: number | null
@@ -1255,6 +1258,7 @@ export type Database = {
       }
       driver_settlements: {
         Row: {
+          adjustments_minor: number
           cash_collected_minor: number
           commission_minor: number
           created_at: string
@@ -1272,6 +1276,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          adjustments_minor?: number
           cash_collected_minor?: number
           commission_minor?: number
           created_at?: string
@@ -1289,6 +1294,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          adjustments_minor?: number
           cash_collected_minor?: number
           commission_minor?: number
           created_at?: string
@@ -1318,6 +1324,80 @@ export type Database = {
             columns: ["driver_id"]
             isOneToOne: false
             referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      driver_wallet_entries: {
+        Row: {
+          amount_minor: number
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          driver_id: string
+          id: string
+          kind: string
+          method: string | null
+          note: string | null
+          reference: string
+          settlement_id: string | null
+        }
+        Insert: {
+          amount_minor: number
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          driver_id: string
+          id?: string
+          kind: string
+          method?: string | null
+          note?: string | null
+          reference: string
+          settlement_id?: string | null
+        }
+        Update: {
+          amount_minor?: number
+          booking_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: Database["public"]["Enums"]["currency_code"]
+          driver_id?: string
+          id?: string
+          kind?: string
+          method?: string | null
+          note?: string | null
+          reference?: string
+          settlement_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_wallet_entries_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_wallet_entries_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_wallet_entries_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "driver_wallet_entries_settlement_id_fkey"
+            columns: ["settlement_id"]
+            isOneToOne: false
+            referencedRelation: "driver_settlements"
             referencedColumns: ["id"]
           },
         ]
@@ -3359,6 +3439,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3424,6 +3505,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3493,6 +3575,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3607,6 +3690,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3728,6 +3812,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3788,6 +3873,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3848,6 +3934,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -3920,6 +4007,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4001,6 +4089,7 @@ export type Database = {
           p_driver_id: string
         }
         Returns: {
+          adjustments_minor: number
           cash_collected_minor: number
           commission_minor: number
           created_at: string
@@ -4025,11 +4114,25 @@ export type Database = {
         }
       }
       admin_dashboard_stats: { Args: never; Returns: Json }
+      admin_driver_balances: {
+        Args: never
+        Returns: {
+          balance_minor: number
+          currency: Database["public"]["Enums"]["currency_code"]
+          driver_id: string
+          is_online: boolean
+          limit_minor: number
+          name: string
+          over_limit: boolean
+          phone: string
+        }[]
+      }
       admin_geofences: { Args: never; Returns: Json }
       admin_live_map: { Args: never; Returns: Json }
       admin_mark_settlement_paid: {
         Args: { p_reference: string; p_settlement_id: string }
         Returns: {
+          adjustments_minor: number
           cash_collected_minor: number
           commission_minor: number
           created_at: string
@@ -4078,6 +4181,36 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "cash_reconciliation"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      admin_record_driver_topup: {
+        Args: {
+          p_amount_minor: number
+          p_currency: Database["public"]["Enums"]["currency_code"]
+          p_driver_id: string
+          p_method: string
+          p_note?: string
+          p_reference: string
+        }
+        Returns: {
+          amount_minor: number
+          booking_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          driver_id: string
+          id: string
+          kind: string
+          method: string | null
+          note: string | null
+          reference: string
+          settlement_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "driver_wallet_entries"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -4393,6 +4526,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4460,6 +4594,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4632,6 +4767,13 @@ export type Database = {
         }
       }
       dispatch_booking: { Args: { p_booking_id: string }; Returns: number }
+      driver_balance: {
+        Args: {
+          p_currency: Database["public"]["Enums"]["currency_code"]
+          p_driver_id: string
+        }
+        Returns: number
+      }
       driver_cancel_booking: {
         Args: { p_booking_id: string; p_reason?: string }
         Returns: {
@@ -4667,6 +4809,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4727,6 +4870,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4805,6 +4949,10 @@ export type Database = {
         }
       }
       driver_dashboard: { Args: never; Returns: Json }
+      driver_debt_limit: {
+        Args: { p_currency: Database["public"]["Enums"]["currency_code"] }
+        Returns: number
+      }
       driver_join_fleet: { Args: { p_code: string }; Returns: Json }
       driver_leave_fleet: { Args: never; Returns: undefined }
       driver_mark_arrived: {
@@ -4842,6 +4990,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4902,6 +5051,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -4926,6 +5076,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      driver_over_debt_limit: {
+        Args: { p_driver_id: string }
+        Returns: boolean
       }
       driver_record_stop: {
         Args: { p_booking_id: string; p_event: string; p_stop_id: string }
@@ -4982,6 +5136,7 @@ export type Database = {
         Args: { p_booking_id: string; p_points: Json }
         Returns: Json
       }
+      driver_wallet: { Args: never; Returns: Json }
       evaluate_coupon: {
         Args: {
           p_category_id: string
@@ -5061,6 +5216,7 @@ export type Database = {
       }
       is_staff: { Args: never; Returns: boolean }
       make_point: { Args: { lat: number; lng: number }; Returns: unknown }
+      my_outstanding_fees: { Args: never; Returns: Json }
       my_saved_locations: {
         Args: never
         Returns: {
@@ -5117,6 +5273,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -5177,6 +5334,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -5656,6 +5814,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null
@@ -5720,6 +5879,7 @@ export type Database = {
           final_fare_minor: number | null
           id: string
           idempotency_key: string
+          outstanding_fee_minor: number
           passenger_id: string
           passenger_note: string | null
           passenger_offer_minor: number | null

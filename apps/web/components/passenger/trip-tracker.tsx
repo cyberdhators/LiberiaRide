@@ -22,7 +22,7 @@ export interface BookingView {
   id: string; code: string; status: BookingStatus; pickup: Pt; dropoff: Pt;
   stops: { id: string; seq: number; kind: string; address: string; lat: number; lng: number }[];
   currency: string; estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null;
-  discount_minor: number; estimated_distance_m: number; estimated_duration_s: number;
+  discount_minor: number; outstanding_fee_minor: number; estimated_distance_m: number; estimated_duration_s: number;
   payment_method: string; payment_status: string; bidding_enabled: boolean; passenger_offer_minor: number | null;
   route_polyline: string | null; share_token: string | null; reserved: boolean; search_expires_at: string | null;
   driver: { id: string; name: string; rating: number | null; trips: number; phone: string | null;
@@ -158,7 +158,7 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
     else { await navigator.clipboard.writeText(url); setError(null); alert("Trip link copied."); }
   }
 
-  const fare = view.final_fare_minor ?? view.agreed_fare_minor ?? view.estimated_fare_minor;
+  const fare = view.final_fare_minor ?? (view.agreed_fare_minor ?? view.estimated_fare_minor) + (view.outstanding_fee_minor ?? 0);
 
   return (
     <div className="relative h-[calc(100dvh-64px)] overflow-hidden">
@@ -181,7 +181,7 @@ export function TripTracker({ initial, userId, initialBids, conversationId, alre
           </div>
           <div className="text-right">
             <p className="font-bold tabular-nums">{money(fare, view.currency)}</p>
-            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Upfront price"}</p>
+            <p className="text-muted text-xs">{view.final_fare_minor !== null ? "Final fare" : view.agreed_fare_minor !== null ? "Agreed price" : "Upfront price"}{view.final_fare_minor === null && view.outstanding_fee_minor > 0 && " + unpaid fee"}</p>
           </div>
         </div>
         {channel === "offline" && !isTerminal(status) && (
@@ -325,7 +325,7 @@ function Receipt({ view, alreadyRated, onDone }: { view: BookingView; alreadyRat
   const rows: [string, number | undefined][] = b ? [
     ["Base fare", b.base_minor], ["Distance", b.distance_minor], ["Time", b.time_minor], ["Stops", b.stops_minor],
     ["Waiting", b.waiting_minor], ["Booking fee", b.booking_fee_minor], ["Minimum fare adjustment", b.minimum_adjustment_minor],
-    ["Rounding", b.rounding_minor],
+    ["Rounding", b.rounding_minor], ["Unpaid cancellation fee (earlier ride)", b.cancellation_minor],
   ] : [];
 
   async function rate() {

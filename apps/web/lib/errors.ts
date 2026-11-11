@@ -41,6 +41,11 @@ const KNOWN_SAFE_PREFIXES = [
   "you must be at the pickup point",
   "too many wrong pin attempts",
   "mark yourself arrived",
+  "commission owed is over the limit",
+  "a receipt or transaction reference is required",
+  "that reference was already used",
+  "invalid amount",
+  "driver not found",
 ];
 
 const COUPON_MESSAGES: Record<string, string> = {

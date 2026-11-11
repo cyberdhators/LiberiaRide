@@ -16,6 +16,9 @@ upfront price vs. early drop-off billing, broadcast acceptance fairness and trip
 `push_test.sql` covers migration 0028: push privileges (dispatcher RPCs service-role only), push
 service allowlist, subscription/outbox privacy, offer/arrival/notification enqueueing, claim/report,
 and offline track upload validation.
+`wallet_test.sql` covers migration 0029: balance maths, debt limit (online + dispatch), no-show fee carried
+to the next fare and credited to the cancelled-on driver, finance-only idempotent top-ups, settlement =
+balance, and one push kick per transaction.
 
 Last run: 2026-11-10 against project ymohklpojfyrlptiwvjr — lifecycle and trust tests FAILURES: [] (see docs/CHECKLIST.md).
 

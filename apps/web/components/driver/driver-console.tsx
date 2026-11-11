@@ -37,7 +37,7 @@ interface ActiveView {
   id: string; code: string; status: string; channel: string; currency: string;
   pickup: { lat: number; lng: number; address: string }; dropoff: { lat: number; lng: number; address: string };
   stops: { id: string; seq: number; kind: string; address: string; lat: number; lng: number; arrived_at: string | null; departed_at: string | null }[];
-  estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null;
+  estimated_fare_minor: number; agreed_fare_minor: number | null; final_fare_minor: number | null; outstanding_fee_minor: number;
   payment_method: string; payment_status: string; route_polyline: string | null;
   passenger: { name: string; rating: number | null; phone: string | null } | null;
   arrived_at: string | null;
@@ -60,6 +60,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
   const [cashInput, setCashInput] = useState("");
   const [showChat, setShowChat] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [walletBlocked, setWalletBlocked] = useState(false);
   const lastSentAt = useRef(0);
   const wakeLock = useRef<WakeLockSentinel | null>(null);
   const activeRef = useRef(active);
@@ -73,7 +74,8 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
 
   // ----- data -----
   const refresh = useCallback(async () => {
-    const { data } = await supabase.rpc("driver_dashboard");
+    const [{ data }, { data: wallet }] = await Promise.all([supabase.rpc("driver_dashboard"), supabase.rpc("driver_wallet")]);
+    setWalletBlocked(Boolean((wallet as { blocked?: boolean } | null)?.blocked));
     if (!data) return;
     const d = data as DriverDashboard;
     setDash(d);
@@ -309,6 +311,9 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
             <span><strong>Keep this screen open.</strong> Web browsers pause GPS when you switch apps, lock the phone or close this tab — you then stop receiving rides and your passenger stops seeing you.</span>
           </div>
         )}
+        {walletBlocked && (
+          <Alert tone="danger">You owe LiberiaRide more than the limit, so you won&apos;t get new rides. <a href="/driver/earnings" className="underline">See your balance</a></Alert>
+        )}
         {gpsError && <Alert tone="danger">{gpsError}</Alert>}
         {permission === "denied" && <Alert tone="danger">Location is blocked. Allow location for this site in your browser settings to drive.</Alert>}
         {lastSent && !lastSent.accepted && lastSent.reason && lastSent.reason !== "throttled" && <Alert tone="warn">{gpsReason[lastSent.reason] ?? lastSent.reason}</Alert>}
@@ -331,7 +336,7 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
                 <h1 className="text-lg font-bold">{STATUS_LABELS[active.status as keyof typeof STATUS_LABELS]}</h1>
                 <p className="text-muted text-xs">Trip {active.code}</p>
               </div>
-              <p className="font-bold tabular-nums">{money(active.final_fare_minor ?? active.agreed_fare_minor ?? active.estimated_fare_minor, active.currency)}</p>
+              <p className="font-bold tabular-nums">{money(active.final_fare_minor ?? (active.agreed_fare_minor ?? active.estimated_fare_minor) + (active.outstanding_fee_minor ?? 0), active.currency)}</p>
             </div>
 
             {active.passenger && active.status !== "COMPLETED" && (
@@ -343,6 +348,9 @@ export function DriverConsole({ initial, userId }: { initial: DriverDashboard; u
                 {active.passenger.phone && <a href={`tel:${active.passenger.phone}`} className="surface-muted grid h-11 w-11 place-items-center rounded-xl" aria-label="Call passenger"><Phone className="h-4 w-4" /></a>}
                 {conversationId && <Button variant="secondary" size="sm" onClick={() => setShowChat((s) => !s)}>Chat</Button>}
               </Card>
+            )}
+            {active.outstanding_fee_minor > 0 && active.status !== "COMPLETED" && (
+              <p className="text-muted text-xs">Includes the passenger&apos;s unpaid cancellation fee of {money(active.outstanding_fee_minor, active.currency)} — collect it with the fare.</p>
             )}
             {showChat && conversationId && active.status !== "COMPLETED" && <ChatPanel bookingId={active.id} conversationId={conversationId} userId={userId} closed={false} />}
 

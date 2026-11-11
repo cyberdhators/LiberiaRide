@@ -56,11 +56,14 @@ Two surfaces:
 | `driver_cancel_booking(booking, reason)` | re-dispatch to another driver (PIN tries reset), or `passenger_no_show` fee after the wait — needs a fresh GPS fix at the pickup |
 | `driver_upload_track(booking, points[])` | up to 300 buffered GPS fixes taken during an in-progress trip; same accuracy/plausibility rules as live updates; returns `{accepted, rejected}` |
 | `push_subscribe(endpoint, p256dh, auth, ua?)`, `push_unsubscribe(endpoint)`, `push_public_key()`, `push_take_recent()` | phone alerts (any signed-in user); endpoints limited to real push services |
+| `driver_wallet()` | own balance per currency, debt limit, `blocked`, recent entries |
+| `my_outstanding_fees()` | passenger's unpaid cancellation fees per currency (added to the next fare) |
 | `driver_join_fleet(code)`, `driver_leave_fleet()` | fleet membership (driver consent via the fleet join code) |
 
 ### Operations (permission-checked, audited)
 `admin_review_driver`, `admin_review_vehicle`, `admin_review_document`, `admin_set_user_suspension`,
 `admin_set_role`, `admin_assign_driver`, `admin_assignable_drivers`, `admin_cancel_booking`,
+`admin_driver_balances` (finance.view), `admin_record_driver_topup` (finance.manage; idempotent on reference),
 `admin_upsert_fare_rule`, `admin_create_promotion`, `admin_set_promotion_active`, `admin_set_config`,
 `admin_upsert_alias`, `admin_update_case`, `admin_reconcile_cash`, `admin_create_settlement`,
 `admin_mark_settlement_paid`, `admin_dashboard_stats`, `admin_live_map`,

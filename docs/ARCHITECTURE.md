@@ -95,6 +95,14 @@ passenger. The driver must enter it to start a web booking; wrong attempts persi
 `trip.start_pin_max_attempts`. Acceptance rate counts only offers the driver could act on
 (accepted, declined, expired), not offers lost to another driver.
 
+**Driver wallet** — `driver_balance(driver, currency)` is the single computation behind the driver's
+Earnings card, the Finance page and settlements: unsettled net earnings − cash the driver collected
++ wallet entries (top-ups, cancellation-fee credits, adjustments) + unpaid settlements. A driver owing
+more than `wallet.max_debt_minor_<currency>` cannot go online and is skipped by dispatch until finance
+records a top-up. A passenger's unpaid cancellation fees are snapshotted onto the next booking
+(`outstanding_fee_minor`), shown before confirming, collected with that fare (cash expected includes it),
+and credited — minus commission — to the driver who was cancelled on.
+
 ## Technology choices
 
 | Concern | Choice | Why |

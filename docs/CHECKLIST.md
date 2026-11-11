@@ -1,13 +1,13 @@
 # Implementation checklist
 
-Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on something external · ⬜ not started · ⏸ paused.
+Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on something external · ⬜ not started · ⏸ paused.
 
 ## Platform
 
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 28 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 29 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |
@@ -28,7 +28,11 @@ Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Push alerts: ride requests (urgent, vibrate, stay on screen), driver assigned/arrived, all notifications | ✅ | migration 0028 + Edge Function `push-dispatch`; verify on a real phone |
 | Never miss a ride: in-page sound alert, 10–30 s polling when Realtime drops, refresh on focus/reconnect | ✅ | |
 | Offline GPS: fixes queued on the phone during network gaps, uploaded with `driver_upload_track` before billing | ✅ | migration 0028 |
-| Installable app (manifest, PNG/maskable icons, Apple icon) and offline page | ✅ | service worker `public/sw.js` |
+| Installable app (manifest, PNG/maskable/Apple icon) and offline page | ✅ | service worker `public/sw.js` |
+| Driver wallet: one balance per currency (earnings − cash held + top-ups + fee credits), shown on Earnings and in Finance | ✅ | migration 0029 |
+| Commission debt limit: over-limit drivers can't go online and get no offers until a top-up is recorded | ✅ | `wallet.max_debt_minor_usd/lrd` (placeholders: US$25 / L$4,500) |
+| Top-ups recorded by finance (receipt reference, idempotent, audited); self-serve MoMo top-up when credentials arrive | 🟡 | |
+| Unpaid cancellation/no-show fees shown before booking and collected with the next fare; cancelled-on driver credited fee − commission | ✅ | migration 0029 |
 | Realtime (private broadcast channels) | ✅ | |
 | Audit log | ✅ | |
 
@@ -77,8 +81,9 @@ Status as of 10 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | SQL fleet test (`supabase/tests/fleet_test.sql`) | ✅ `FAILURES: []` (19 checks) |
 | SQL areas test (`supabase/tests/areas_test.sql`) | ✅ `FAILURES: []` |
 | SQL push & offline-track test (`supabase/tests/push_test.sql`) | ✅ `FAILURES: []` |
+| SQL wallet & fee carry-over test (`supabase/tests/wallet_test.sql`) | ✅ `FAILURES: []` (35 checks) |
 | SQL trust & billing test (`supabase/tests/trust_test.sql`) | ✅ `FAILURES: []` (33 checks, incl. lockout → reassign → new driver starts) |
-| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page | ✅ 8/8 |
+| Browser E2E (Playwright): home, auth redirect, book → cancel, save Home, live notification, fleet join/remove, admin ride types & areas, installable app + offline page, finance top-up unblocks a driver | ✅ 9/9 |
 
 ## Quality, later
 

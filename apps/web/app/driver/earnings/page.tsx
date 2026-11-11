@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, money } from "@/lib/utils";
 import { Badge, Card, EmptyState, Stat } from "@/components/ui";
 import { FleetMembership } from "@/components/driver/fleet-membership";
+import { WalletCard, type DriverWallet } from "@/components/driver/wallet-card";
 
 export const metadata = { title: "Earnings" };
 
@@ -10,30 +11,27 @@ export default async function EarningsPage() {
   const user = await requireUser("/driver/earnings");
   const supabase = await createClient();
   const weekAgo = new Date(Date.now() - 7 * 86400_000).toISOString();
-  const [{ data: earnings }, { data: settlements }, { data: cash }, { data: driver }] = await Promise.all([
+  const [{ data: earnings }, { data: settlements }, { data: cash }, { data: driver }, { data: wallet }] = await Promise.all([
     supabase.from("driver_earnings").select("id, booking_id, currency, gross_minor, commission_minor, net_minor, payment_method, settlement_id, created_at, bookings(code)")
       .eq("driver_id", user.id).order("created_at", { ascending: false }).limit(100),
     supabase.from("driver_settlements").select("id, currency, period_start, period_end, net_payable_minor, status, paid_at, payout_reference")
       .eq("driver_id", user.id).order("period_end", { ascending: false }).limit(20),
     supabase.from("cash_reconciliation").select("currency, expected_minor, collected_minor, status").eq("driver_id", user.id).is("settlement_id", null),
     supabase.from("drivers").select("fleet_id, fleets!drivers_fleet_id_fkey(name)").eq("id", user.id).maybeSingle(),
+    supabase.rpc("driver_wallet"),
   ]);
 
   const week = (earnings ?? []).filter((e) => e.created_at >= weekAgo);
   const totals = (rows: typeof week, key: "net_minor" | "commission_minor") =>
     rows.reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.currency]: (acc[r.currency] ?? 0) + Number(r[key]) }), {});
   const weekNet = totals(week, "net_minor");
-  const owedCommission = (earnings ?? []).filter((e) => !e.settlement_id && e.payment_method === "cash")
-    .reduce<Record<string, number>>((acc, r) => ({ ...acc, [r.currency]: (acc[r.currency] ?? 0) + Number(r.commission_minor) }), {});
   const fmt = (m: Record<string, number>) => Object.entries(m).map(([c, v]) => money(v, c)).join(" · ") || money(0, "USD");
 
   return (
     <main className="mx-auto max-w-lg space-y-4 p-4">
       <h1 className="text-xl font-bold">Earnings</h1>
-      <div className="grid grid-cols-2 gap-3">
-        <Stat label="Last 7 days" value={fmt(weekNet)} hint={`${week.length} trips`} />
-        <Stat label="Commission owed (cash)" value={fmt(owedCommission)} hint="Settled with operations" />
-      </div>
+      <Stat label="Last 7 days" value={fmt(weekNet)} hint={`${week.length} trips`} />
+      {wallet && <WalletCard wallet={wallet as DriverWallet} />}
       {(cash ?? []).some((c) => c.status === "variance") && (
         <Card className="border-amber-300 text-sm">Some cash trips don&apos;t match the fare. Operations will contact you to reconcile.</Card>
       )}

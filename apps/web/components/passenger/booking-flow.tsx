@@ -46,6 +46,11 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   const [nearby, setNearby] = useState<number | null>(null);
 
   const [currency, setCurrency] = useState<Currency>(defaultCurrency);
+  // Unpaid cancellation fees are added to the next fare in the same currency — say so before confirming.
+  const [fees, setFees] = useState<Record<string, number>>({});
+  useEffect(() => {
+    void createClient().rpc("my_outstanding_fees").then(({ data }) => setFees((data ?? {}) as Record<string, number>));
+  }, []);
   const [payment, setPayment] = useState<PaymentMethod>(defaultPayment);
   const [coupon, setCoupon] = useState("");
   const [estimates, setEstimates] = useState<Estimate[] | null>(null);
@@ -174,6 +179,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
   }
 
   const chosen = estimates?.find((e) => e.category === selected && !e.error);
+  const feeDue = fees[chosen?.currency ?? currency] ?? 0;
   const bidRange = bidding[`${selected}:${currency}`];
   const bidBounds = chosen?.totalMinor && bidRange ? bidWindow(BigInt(chosen.totalMinor), bidRange.min, bidRange.max) : null;
 
@@ -405,12 +411,15 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
               <p className="text-muted mt-2 text-xs">Mobile money is collected after the trip. If it can&apos;t be completed, you can pay your driver in cash.</p>
             )}
 
+            {feeDue > 0 && (
+              <Alert tone="warn" className="mt-3">An unpaid cancellation fee of {money(feeDue, chosen?.currency ?? currency)} from an earlier ride will be added to this trip.</Alert>
+            )}
             {error && <Alert tone="danger" className="mt-3">{error}</Alert>}
             {/* Stays visible while the options scroll. */}
             <div className="surface sticky -bottom-4 -mx-4 mt-3 px-4 pb-4 pt-2">
               <Button size="lg" className="w-full" disabled={!chosen} loading={booking} onClick={confirm}>
                 {offer.trim() && bidBounds ? "Send offer to drivers" : `Confirm ${categories.find((c) => c.code === selected)?.name ?? ""}`}
-                {chosen?.totalMinor && !offer.trim() && <span className="opacity-80">· {money(chosen.totalMinor, chosen.currency ?? currency)}</span>}
+                {chosen?.totalMinor && !offer.trim() && <span className="opacity-80">· {money(Number(chosen.totalMinor) + feeDue, chosen.currency ?? currency)}</span>}
               </Button>
             </div>
           </>
