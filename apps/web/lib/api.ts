@@ -30,12 +30,15 @@ export async function qlsBudgetExceeded(userId: string): Promise<string | null> 
   const admin = createAdminClient();
   const minuteAgo = new Date(Date.now() - 60_000).toISOString();
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
-  const [{ count: perMinute }, { count: perDay }] = await Promise.all([
+  const [{ count: perMinute }, { count: perDay }, { data: roles }] = await Promise.all([
     admin.from("qls_usage").select("id", { count: "exact", head: true }).eq("user_id", userId).gte("created_at", minuteAgo),
     admin.from("qls_usage").select("id", { count: "exact", head: true }).eq("user_id", userId).eq("billed", true).gte("created_at", dayAgo),
+    admin.from("user_roles").select("role").eq("user_id", userId),
   ]);
-  if ((perMinute ?? 0) >= 12) return "Too many searches. Please wait a moment.";
-  if ((perDay ?? 0) >= 150) return "Daily search limit reached. Use saved places or drop a pin on the map.";
+  // Operators book many trips a day for callers; passengers get the tighter limit.
+  const staff = (roles ?? []).some((r) => ["support_agent", "admin", "super_admin"].includes(r.role as string));
+  if ((perMinute ?? 0) >= (staff ? 60 : 12)) return "Too many searches. Please wait a moment.";
+  if ((perDay ?? 0) >= (staff ? 1500 : 150)) return "Daily search limit reached. Use saved places or drop a pin on the map.";
   return null;
 }
 

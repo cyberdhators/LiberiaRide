@@ -73,6 +73,7 @@ export async function POST(request: Request) {
     passenger = { id: created.user.id, name: body.name, isNew: true };
   }
   if (passenger.id === auth.userId) return fail(400, "Use the passenger app to book for yourself.");
+  await supabase.rpc("admin_log_caller_account", { p_passenger_id: passenger.id, p_created: passenger.isNew });
 
   const priced = await priceTrip({
     qlsUserId: auth.userId, passengerId: passenger.id, onBehalfOf: true,

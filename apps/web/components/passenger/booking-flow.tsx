@@ -430,7 +430,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             </ul>
 
             <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-              {bidBounds && !showOffer && (
+              {bidBounds && !showOffer && when === "now" && (
                 <button className="font-medium text-brand-600" onClick={() => setShowOffer(true)}>Offer your own price</button>
               )}
               {!showCoupon && !coupon && rewardCodes[0] && (
@@ -451,7 +451,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
               </form>
             )}
 
-            {bidBounds && showOffer && (
+            {bidBounds && showOffer && when === "now" && (
               <div className="mt-3 rounded-xl border border-dashed border-line p-3">
                 <label htmlFor="offer" className="text-sm font-medium">Offer your price <Badge tone="brand">optional</Badge></label>
                 <p className="text-muted text-xs">Drivers can accept or counter. Allowed: {money(bidBounds.min, currency)} – {money(bidBounds.max, currency)}.</p>
@@ -477,7 +477,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
 
             <div className="mt-3 grid grid-cols-2 gap-2" role="radiogroup" aria-label="When">
               {(["now", "later"] as const).map((w) => (
-                <button key={w} role="radio" aria-checked={when === w} onClick={() => setWhen(w)}
+                <button key={w} role="radio" aria-checked={when === w} onClick={() => { setWhen(w); if (w === "later") { setOffer(""); setShowOffer(false); } }}
                   className={cn("flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2 text-xs font-medium",
                     when === w ? "border-brand-500 bg-brand-50" : "border-line")}>
                   {w === "now" ? <Car className="h-4 w-4" /> : <CalendarClock className="h-4 w-4" />}{w === "now" ? "Ride now" : "Schedule"}

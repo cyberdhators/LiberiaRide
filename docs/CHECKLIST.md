@@ -7,7 +7,7 @@ Status as of 11 Nov 2026. ✅ done and verified · 🟡 built, waiting on someth
 | Item | Status | Notes |
 |---|---|---|
 | Monorepo (Next.js 16 app + `shared`, `geospatial`, `database` packages) | ✅ | npm workspaces |
-| Supabase schema, 36 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
+| Supabase schema, 38 migrations, PostGIS, pg_cron, pg_net, Vault | ✅ | applied to dev project `ymohklpojfyrlptiwvjr` |
 | RLS on every table, locked-down function privileges | ✅ | security advisor clean except intentional client RPCs |
 | Generated database types | ✅ | `packages/database/src/types.ts` |
 | CI (migration parse, unit tests, typecheck, build) | ✅ | green on GitHub; `.github/workflows/ci.yml`; real-DB job needs `RUN_DB_TESTS` + dev secrets |

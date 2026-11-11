@@ -16,13 +16,16 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
   const v = view as Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
   const status = v.status as BookingStatus;
 
-  const [{ data: events }, { data: offers }, { data: assignments }, { data: payments }, { data: candidates }] = await Promise.all([
+  const [{ data: events }, { data: offers }, { data: assignments }, { data: payments }, { data: candidates }, { data: extra }, { data: rider }] = await Promise.all([
     supabase.from("booking_events").select("id, from_status, to_status, actor_role, metadata, created_at").eq("booking_id", id).order("id"),
     supabase.from("booking_offers").select("id, driver_id, strategy, dispatch_round, status, pickup_distance_m, offered_at, responded_at, response_reason").eq("booking_id", id).order("offered_at"),
     supabase.from("booking_assignments").select("id, driver_id, method, assigned_at, released_at, release_reason").eq("booking_id", id).order("assigned_at"),
     supabase.from("payments").select("id, method, status, amount_minor, currency, provider_reference, idempotency_key, created_at").eq("booking_id", id),
     ["SEARCHING_DRIVER", "DRIVER_OFFERED"].includes(status) ? supabase.rpc("admin_assignable_drivers", { p_booking_id: id }) : Promise.resolve({ data: [] }),
+    supabase.from("bookings").select("created_by, passenger_note, profiles!bookings_created_by_fkey(full_name)").eq("id", id).maybeSingle(),
+    supabase.from("booking_riders").select("name, phone").eq("booking_id", id).maybeSingle(),
   ]);
+  const operator = (extra?.profiles as unknown as { full_name: string | null } | null)?.full_name;
 
   const driverIds = [...new Set([...(offers ?? []).map((o) => o.driver_id), ...(assignments ?? []).map((a) => a.driver_id)])];
   const { data: names } = driverIds.length
@@ -48,6 +51,11 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
           <CardTitle>Summary</CardTitle>
           <dl className="mt-2 space-y-1 text-sm">
             <div><Badge tone="brand">{STATUS_LABELS[status]}</Badge> <span className="text-muted">via {v.channel}</span></div>
+            {v.scheduled_for && <div><dt className="text-muted inline">Pickup at </dt><dd className="inline font-semibold">{formatDateTime(v.scheduled_for)}</dd></div>}
+            {extra?.created_by && <div><dt className="text-muted inline">Booked by operator </dt><dd className="inline">{operator ?? extra.created_by.slice(0, 8)}</dd></div>}
+            {Number(v.surge_multiplier) > 1 && <div><dt className="text-muted inline">Busy hours </dt><dd className="inline">×{Number(v.surge_multiplier).toFixed(2)}</dd></div>}
+            {Number(v.outstanding_fee_minor) > 0 && <div><dt className="text-muted inline">Carried fee </dt><dd className="inline">{money(v.outstanding_fee_minor, v.currency)}</dd></div>}
+            {extra?.passenger_note && <div><dt className="text-muted inline">Note </dt><dd className="inline">{extra.passenger_note}</dd></div>}
             <div><dt className="text-muted inline">From </dt><dd className="inline">{v.pickup.address}</dd></div>
             <div><dt className="text-muted inline">To </dt><dd className="inline">{v.dropoff.address}</dd></div>
             <div><dt className="text-muted inline">Estimate </dt><dd className="inline">{money(v.estimated_fare_minor, v.currency)} · {(v.estimated_distance_m / 1000).toFixed(1)} km</dd></div>
@@ -60,7 +68,14 @@ export default async function BookingDetail({ params }: { params: Promise<{ id: 
         <Card>
           <CardTitle>People</CardTitle>
           <div className="mt-2 space-y-2 text-sm">
-            <p><span className="text-muted">Passenger:</span> {v.passenger?.name} {v.passenger?.phone && <a className="underline" href={`tel:${v.passenger.phone}`}>{v.passenger.phone}</a>}</p>
+            {rider ? (
+              <>
+                <p><span className="text-muted">Rider:</span> {rider.name} <a className="underline" href={`tel:${rider.phone}`}>{rider.phone}</a></p>
+                <p><span className="text-muted">Booked by passenger:</span> {v.passenger?.booked_by}</p>
+              </>
+            ) : (
+              <p><span className="text-muted">Passenger:</span> {v.passenger?.name} {v.passenger?.phone && <a className="underline" href={`tel:${v.passenger.phone}`}>{v.passenger.phone}</a>}</p>
+            )}
             {v.driver ? (
               <p><span className="text-muted">Driver:</span> <a className="underline" href={`/admin/drivers/${v.driver.id}`}>{v.driver.name}</a> {v.driver.phone} · {v.driver.vehicle?.plate}</p>
             ) : <p className="text-muted">No driver assigned.</p>}

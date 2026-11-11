@@ -4449,6 +4449,10 @@ export type Database = {
       }
       admin_geofences: { Args: never; Returns: Json }
       admin_live_map: { Args: never; Returns: Json }
+      admin_log_caller_account: {
+        Args: { p_created: boolean; p_passenger_id: string }
+        Returns: undefined
+      }
       admin_mark_settlement_paid: {
         Args: { p_reference: string; p_settlement_id: string }
         Returns: {

@@ -64,6 +64,13 @@ test("passenger schedules a ride for someone else and cancels it", async ({ page
   expect(rows![0]!.status).toBe("SCHEDULED");
   expect(rows![0]!.booking_riders).toMatchObject({ name: "Musu Kamara", phone: "+231770123456" });
 
+  // The trip link already works for a scheduled ride (no driver yet), even signed out.
+  const { data: tok } = await admin.from("bookings").select("share_token").eq("id", rows![0]!.id).single();
+  const anon = await page.context().browser()!.newPage();
+  await anon.goto(`/share/${encodeURIComponent(tok!.share_token)}`);
+  await expect(anon.getByText(/Pickup .*07:30/)).toBeVisible();
+  await anon.close();
+
   await page.goto("/passenger/trips");
   await expect(page.getByRole("heading", { name: "Upcoming" })).toBeVisible();
   await page.getByRole("link", { name: /07:30/ }).click();

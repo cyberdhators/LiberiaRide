@@ -65,4 +65,10 @@ test("support agent books a ride for a caller", async ({ page }) => {
   const { data: b } = await admin.from("bookings").select("channel, created_by, passenger_note, status").eq("passenger_id", caller!.id).single();
   expect(b).toMatchObject({ channel: "admin", created_by: ids.ops, passenger_note: "Blue gate opposite the school" });
   expect(["SEARCHING_DRIVER", "DRIVER_OFFERED", "EXPIRED"]).toContain(b!.status);
+  const { data: audit } = await admin.from("audit_logs").select("action").eq("actor_id", ids.ops);
+  expect(audit!.map((x) => x.action)).toEqual(expect.arrayContaining(["caller.create", "booking.create_for"]));
+
+  await page.getByRole("button", { name: "Open booking" }).click();
+  await expect(page.getByText("Booked by operator")).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByText("Blue gate opposite the school")).toBeVisible();
 });
