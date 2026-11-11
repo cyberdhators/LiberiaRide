@@ -12,9 +12,12 @@ import {
 
 const migrationsDir = join(__dirname, "../../../supabase/migrations");
 
+const migrations = () => readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+
+/** The LAST migration that (re)defines booking_transition_allowed is the live one. */
 function sqlTransitionTable(): Record<string, string[]> {
-  const file = readdirSync(migrationsDir).find((f) => f.endsWith("_booking_engine.sql"));
-  if (!file) throw new Error("booking engine migration not found");
+  const file = migrations().filter((f) => readFileSync(join(migrationsDir, f), "utf8").includes("function public.booking_transition_allowed")).at(-1);
+  if (!file) throw new Error("booking_transition_allowed not found");
   const sql = readFileSync(join(migrationsDir, file), "utf8");
   const fn = sql.slice(sql.indexOf("function public.booking_transition_allowed"));
   const body = fn.slice(0, fn.indexOf("$$;"));
@@ -33,11 +36,15 @@ describe("booking state machine", () => {
     }
   });
 
-  it("enumerates the SQL enum values in order", () => {
-    const file = readdirSync(migrationsDir).find((f) => f.endsWith("_extensions_and_types.sql"))!;
+  it("enumerates the SQL enum values in order (created, then appended by later migrations)", () => {
+    const file = migrations().find((f) => f.endsWith("_extensions_and_types.sql"))!;
     const sql = readFileSync(join(migrationsDir, file), "utf8");
     const enumBody = sql.slice(sql.indexOf("type public.booking_status as enum"));
     const values = [...enumBody.slice(0, enumBody.indexOf(");")).matchAll(/'([A-Z_]+)'/g)].map((m) => m[1]);
+    for (const f of migrations()) {
+      const text = readFileSync(join(migrationsDir, f), "utf8");
+      for (const m of text.matchAll(/alter type public\.booking_status add value(?: if not exists)? '([A-Z_]+)'/g)) values.push(m[1]);
+    }
     expect(values).toEqual([...BOOKING_STATUSES]);
   });
 
@@ -78,5 +85,12 @@ describe("booking state machine", () => {
     expect(canTransition("IN_PROGRESS", "CANCELLED")).toBe(false);
     expect(passengerCanCancel("IN_PROGRESS")).toBe(false);
     expect(passengerCanCancel("DRIVER_ARRIVED")).toBe(true);
+  });
+
+  it("schedules, releases and cancels scheduled rides", () => {
+    expect(canTransition("PENDING_CONFIRMATION", "SCHEDULED")).toBe(true);
+    expect(canTransition("SCHEDULED", "SEARCHING_DRIVER")).toBe(true);
+    expect(canTransition("SCHEDULED", "DRIVER_ASSIGNED")).toBe(false);
+    expect(passengerCanCancel("SCHEDULED")).toBe(true);
   });
 });

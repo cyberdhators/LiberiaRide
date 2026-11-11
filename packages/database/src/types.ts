@@ -408,6 +408,35 @@ export type Database = {
           },
         ]
       }
+      booking_riders: {
+        Row: {
+          booking_id: string
+          created_at: string
+          name: string
+          phone: string
+        }
+        Insert: {
+          booking_id: string
+          created_at?: string
+          name: string
+          phone: string
+        }
+        Update: {
+          booking_id?: string
+          created_at?: string
+          name?: string
+          phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "booking_riders_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: true
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_start_pins: {
         Row: {
           booking_id: string
@@ -503,6 +532,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -530,10 +560,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -555,6 +587,7 @@ export type Database = {
           confirmed_at?: string | null
           coupon_id?: string | null
           created_at?: string
+          created_by?: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor?: number
           dispatch_round?: number
@@ -582,10 +615,12 @@ export type Database = {
           reserved_driver_id?: string | null
           reserved_until?: string | null
           route_polyline?: string | null
+          scheduled_for?: string | null
           search_expires_at?: string | null
           share_token?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier?: number
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -607,6 +642,7 @@ export type Database = {
           confirmed_at?: string | null
           coupon_id?: string | null
           created_at?: string
+          created_by?: string | null
           currency?: Database["public"]["Enums"]["currency_code"]
           discount_minor?: number
           dispatch_round?: number
@@ -634,10 +670,12 @@ export type Database = {
           reserved_driver_id?: string | null
           reserved_until?: string | null
           route_polyline?: string | null
+          scheduled_for?: string | null
           search_expires_at?: string | null
           share_token?: string | null
           started_at?: string | null
           status?: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier?: number
           updated_at?: string
           vehicle_id?: string | null
         }
@@ -661,6 +699,13 @@ export type Database = {
             columns: ["coupon_id"]
             isOneToOne: false
             referencedRelation: "coupons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bookings_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
@@ -3424,6 +3469,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3451,10 +3497,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3490,6 +3538,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3517,10 +3566,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3560,6 +3611,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3587,10 +3639,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3675,6 +3729,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3702,10 +3757,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3797,6 +3854,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3824,10 +3882,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3858,6 +3918,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3885,10 +3946,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3919,6 +3982,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -3946,10 +4010,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -3992,6 +4058,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -4019,10 +4086,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -4568,6 +4637,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -4595,10 +4665,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -4636,6 +4708,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -4663,10 +4736,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -4851,6 +4926,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -4878,10 +4954,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -4912,6 +4990,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -4939,10 +5018,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5032,6 +5113,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5059,10 +5141,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5093,6 +5177,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5120,10 +5205,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5287,6 +5374,19 @@ export type Database = {
           qls_code: string
         }[]
       }
+      my_scheduled_rides: {
+        Args: never
+        Returns: {
+          category: string
+          code: string
+          currency: Database["public"]["Enums"]["currency_code"]
+          dropoff_address: string
+          estimated_fare_minor: number
+          id: string
+          pickup_address: string
+          scheduled_for: string
+        }[]
+      }
       nearby_driver_count: {
         Args: { p_category_code?: string; p_lat: number; p_lng: number }
         Returns: number
@@ -5315,6 +5415,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5342,10 +5443,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5376,6 +5479,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5403,10 +5507,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5704,6 +5810,7 @@ export type Database = {
         Args: { p_offer_id: string; p_reason?: string }
         Returns: undefined
       }
+      release_scheduled_bookings: { Args: never; Returns: number }
       report_incident: {
         Args: {
           p_booking_id: string
@@ -5794,6 +5901,70 @@ export type Database = {
         }
         Returns: string
       }
+      schedule_booking: {
+        Args: { p_at: string; p_booking_id: string }
+        Returns: {
+          agreed_fare_minor: number | null
+          allocation_strategy: Database["public"]["Enums"]["allocation_strategy"]
+          arrived_at: string | null
+          assigned_at: string | null
+          bidding_enabled: boolean
+          cancel_reason: string | null
+          cancellation_fee_minor: number
+          cancelled_at: string | null
+          cancelled_by: string | null
+          cancelled_by_role: string | null
+          category_id: string
+          channel: Database["public"]["Enums"]["booking_channel"]
+          code: string
+          completed_at: string | null
+          confirmed_at: string | null
+          coupon_id: string | null
+          created_at: string
+          created_by: string | null
+          currency: Database["public"]["Enums"]["currency_code"]
+          discount_minor: number
+          dispatch_round: number
+          driver_id: string | null
+          dropoff: unknown
+          dropoff_address: string
+          dropoff_qls_ref: string | null
+          estimated_distance_m: number
+          estimated_duration_s: number
+          estimated_fare_minor: number
+          fare_estimate_id: string | null
+          fare_rule_id: string
+          final_fare_minor: number | null
+          id: string
+          idempotency_key: string
+          outstanding_fee_minor: number
+          passenger_id: string
+          passenger_note: string | null
+          passenger_offer_minor: number | null
+          payment_method: Database["public"]["Enums"]["payment_method"]
+          payment_status: Database["public"]["Enums"]["payment_status"]
+          pickup: unknown
+          pickup_address: string
+          pickup_qls_ref: string | null
+          reserved_driver_id: string | null
+          reserved_until: string | null
+          route_polyline: string | null
+          scheduled_for: string | null
+          search_expires_at: string | null
+          share_token: string | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
+          updated_at: string
+          vehicle_id: string | null
+        }
+        SetofOptions: {
+          from: "*"
+          to: "bookings"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       search_address_aliases: {
         Args: { p_limit?: number; p_query: string }
         Returns: {
@@ -5803,6 +5974,10 @@ export type Database = {
           lng: number
           qls_code: string
         }[]
+      }
+      set_booking_rider: {
+        Args: { p_booking_id: string; p_name: string; p_phone: string }
+        Returns: undefined
       }
       submit_driver_document: {
         Args: {
@@ -5856,6 +6031,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5883,10 +6059,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -5921,6 +6099,7 @@ export type Database = {
           confirmed_at: string | null
           coupon_id: string | null
           created_at: string
+          created_by: string | null
           currency: Database["public"]["Enums"]["currency_code"]
           discount_minor: number
           dispatch_round: number
@@ -5948,10 +6127,12 @@ export type Database = {
           reserved_driver_id: string | null
           reserved_until: string | null
           route_polyline: string | null
+          scheduled_for: string | null
           search_expires_at: string | null
           share_token: string | null
           started_at: string | null
           status: Database["public"]["Enums"]["booking_status"]
+          surge_multiplier: number
           updated_at: string
           vehicle_id: string | null
         }
@@ -6011,6 +6192,7 @@ export type Database = {
         | "CANCELLED"
         | "EXPIRED"
         | "FAILED"
+        | "SCHEDULED"
       case_status:
         | "open"
         | "acknowledged"
@@ -6222,6 +6404,7 @@ export const Constants = {
         "CANCELLED",
         "EXPIRED",
         "FAILED",
+        "SCHEDULED",
       ],
       case_status: [
         "open",

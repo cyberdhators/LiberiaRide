@@ -1,4 +1,4 @@
-// Mirror of public.booking_transition_allowed (supabase/migrations/…_booking_engine.sql).
+// Mirror of public.booking_transition_allowed (latest definition in supabase/migrations).
 // The database is authoritative; this copy drives UI affordances and is parity-tested.
 
 export const BOOKING_STATUSES = [
@@ -15,6 +15,7 @@ export const BOOKING_STATUSES = [
   "CANCELLED",
   "EXPIRED",
   "FAILED",
+  "SCHEDULED", // added by migration 0031 (enum values are appended)
 ] as const;
 
 export type BookingStatus = (typeof BOOKING_STATUSES)[number];
@@ -22,7 +23,8 @@ export type BookingStatus = (typeof BOOKING_STATUSES)[number];
 export const BOOKING_TRANSITIONS: Readonly<Record<BookingStatus, readonly BookingStatus[]>> = {
   DRAFT: ["FARE_ESTIMATED", "CANCELLED"],
   FARE_ESTIMATED: ["PENDING_CONFIRMATION", "CANCELLED", "EXPIRED"],
-  PENDING_CONFIRMATION: ["SEARCHING_DRIVER", "CANCELLED", "EXPIRED"],
+  PENDING_CONFIRMATION: ["SEARCHING_DRIVER", "SCHEDULED", "CANCELLED", "EXPIRED"],
+  SCHEDULED: ["SEARCHING_DRIVER", "CANCELLED", "EXPIRED"],
   SEARCHING_DRIVER: ["DRIVER_OFFERED", "DRIVER_ASSIGNED", "CANCELLED", "EXPIRED", "FAILED"],
   DRIVER_OFFERED: ["DRIVER_ASSIGNED", "SEARCHING_DRIVER", "CANCELLED", "EXPIRED", "FAILED"],
   DRIVER_ASSIGNED: ["DRIVER_ARRIVING", "DRIVER_ARRIVED", "SEARCHING_DRIVER", "CANCELLED", "FAILED"],
@@ -79,6 +81,7 @@ export const STATUS_LABELS: Readonly<Record<BookingStatus, string>> = {
   CANCELLED: "Cancelled",
   EXPIRED: "No driver found",
   FAILED: "Trip ended",
+  SCHEDULED: "Scheduled",
 };
 
 export function isBookingStatus(value: unknown): value is BookingStatus {
