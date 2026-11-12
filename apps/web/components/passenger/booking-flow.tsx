@@ -396,7 +396,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
             {estimateNotice && <Alert tone="info" className="mb-2">{estimateNotice}</Alert>}
             {(chosen?.surgeMultiplier ?? 1) > 1 && (
               <Alert tone="warn" className="mb-2" title={`Busy hours: prices ×${chosen!.surgeMultiplier!.toFixed(2)}`}>
-                More people are riding right now. The price shown already includes it and won&apos;t change — or schedule for later.
+                More people are riding right now. The price shown already includes it and won&apos;t change — or schedule for a quieter time to pay the normal fare.
               </Alert>
             )}
 
@@ -491,7 +491,7 @@ export function BookingFlow({ categories, savedPlaces, defaultPayment, defaultCu
                 <label htmlFor="later-at" className="text-sm font-medium">Pickup time</label>
                 <Input id="later-at" type="datetime-local" className="mt-1" value={laterAt} onChange={(e) => setLaterAt(e.target.value)}
                   min={localInput(Date.now() + 30 * 60_000)} max={localInput(Date.now() + 7 * 86_400_000)} />
-                <p className="text-muted mt-1 text-xs">From 30 minutes to 7 days ahead. The price above is locked; we start finding your driver 15 minutes before.</p>
+                <p className="text-muted mt-1 text-xs">From 30 minutes to 7 days ahead. Priced for your pickup time (busy-hour pricing only applies if you are picked up during busy hours) and then locked. We start finding your driver 15 minutes before.</p>
               </div>
             )}
             <label className="mt-3 flex items-center gap-2 text-sm">
